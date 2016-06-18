@@ -26,7 +26,7 @@ import static water.fvec.FileVec.getPathForKey;
 public class OrcParserProvider extends ParserProvider {
 
   /* Setup for this parser */
-  static ParserInfo ORC_INFO = new ParserInfo("ORC", DefaultParserProviders.MAX_CORE_PRIO + 20, true, false);
+  static ParserInfo ORC_INFO = new ParserInfo("ORC", DefaultParserProviders.MAX_CORE_PRIO + 20, true);
 
   @Override
   public ParserInfo info() {
@@ -53,7 +53,7 @@ public class OrcParserProvider extends ParserProvider {
    * @param inputs  input keys
    * @param requiredSetup  user given parser setup
    * @return
-     */
+   */
   @Override
   public ParseSetup createParserSetup(Key[] inputs, ParseSetup requiredSetup) {
 
@@ -85,8 +85,8 @@ public class OrcParserProvider extends ParserProvider {
    * @param f
    * @param columnNames
    * @param columnTypes
-     * @return
-     */
+   * @return
+   */
   public ParseSetup readSetup(FileVec f, String[] columnNames, byte[] columnTypes) {
     try {
       Reader orcFileReader = getReader(f);
@@ -119,10 +119,8 @@ public class OrcParserProvider extends ParserProvider {
         f.setChunkSize(stp._chunk_size = (int)f.length());
         return stp;
       }
-      stp._chunk_size = (int)(f.length()/(stripesInfo.size()));
-      if((f.length()%stripesInfo.size()) != 0) // need  exact match between stripes and chunks
-        stp._chunk_size = (int)((f.length()+stripesInfo.size())/stripesInfo.size());
-      f.setChunkSize(stp._chunk_size);
+      f.setNChunks(stripesInfo.size());
+      stp._chunk_size = f._chunkSize;
       assert f.nChunks() == stripesInfo.size(); // ORC parser needs one-to one mapping between chunk and strip (just ids, offsets do not matter)
       return stp;
     } catch(IOException ioe) {
@@ -134,8 +132,8 @@ public class OrcParserProvider extends ParserProvider {
   public ParseSetup setupLocal(Vec v, ParseSetup setup){
     if(!(v instanceof FileVec)) throw H2O.unimpl("ORC only implemented for HDFS / NFS files");
     try {
-
       ((OrcParser.OrcParseSetup)setup).setOrcFileReader(getReader((FileVec)v));
+
       return setup;
 
     } catch (IOException e) {throw new RuntimeException(e);}

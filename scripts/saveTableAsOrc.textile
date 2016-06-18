@@ -1,8 +1,8 @@
 set hive.execution.engine=mr;
 set mapreduce.map.memory.mb=5240;
 set mapreduce.reduce.memory.mb=5240;
-set mapreduce.map.java.opts=-DAMYWANG_MAP=1 -Xmx4G -XX:PermSize=256m -XX:MaxPermSize=256m -XX:+PrintGCDetails -XX:+PrintGCTimeStamps;
-set mapreduce.reduce.java.opts=-DAMYWANG_REDUCE=1 -Xmx4G -XX:PermSize=256m -XX:MaxPermSize=256m -XX:+PrintGCDetails -XX:+PrintGCTimeStamps;
+set mapreduce.map.java.opts=-DAMYWANG_MAP=1 -Xmx4G -XX:PermSize=256m -XX:MaxPermSize=256m -XX:PrintGCDetails -XX:PrintGCTimeStamps;
+set mapreduce.reduce.java.opts=-DAMYWANG_REDUCE=1 -Xmx4G -XX:PermSize=256m -XX:MaxPermSize=256m -XX:PrintGCDetails -XX:PrintGCTimeStamps;
 create table airlines_all_05p(
 Year INT,
 Month INT,
@@ -37,9 +37,9 @@ IsArrDelayed STRING,
 IsDepDelayed STRING
 )
 ROW FORMAT DELIMITED
-FIELDS TERMINATED BY ','
-location '/apps/hive/warehouse/data/airlines_all_05p';
-load data inpath 'hdfs://mr-0xd6.0xdata.loc:8020/user/amy/airlines_all.05p.csv' into table airlines_all_05p;
+FIELDS TERMINATED BY ‘,’
+location ‘/apps/hive/warehouse/data/airlines_all_05p’;
+load data inpath ‘hdfs://mr-0xd6.0xdata.loc:8020/user/amy/airlines_all.05p.csv’ into table airlines_all_05p;
 create table orc_airlines_all_05p(
 Year INT,
 Month INT,
@@ -74,7 +74,7 @@ IsArrDelayed STRING,
 IsDepDelayed STRING
 )
 ROW FORMAT DELIMITED
-FIELDS TERMINATED BY ','
+FIELDS TERMINATED BY ‘,’
 STORED AS ORC;
 INSERT OVERWRITE TABLE orc_airlines_all_05p select * from airlines_all_05p;
 
@@ -82,7 +82,7 @@ The following is from Nidhi:
 CREATE EXTERNAL TABLE ta (a1 INT, a2 STRING, a3 STRING, a4 STRING, a5 INT, a6 STRING, a7 INT, a8 INT, a9 INT)
 STORED AS ORC;
 
-LOAD DATA local INPATH '/home/wendy/demo-11-zlib.orc' OVERWRITE INTO TABLE ta;
+LOAD DATA local INPATH ‘/home/wendy/demo-11-zlib.orc’ OVERWRITE INTO TABLE ta;
 ​
 select * from ta limit 3;
 #OK
@@ -91,9 +91,9 @@ select * from ta limit 3;
 #3	M	S	Primary	500	Good	0	0	0
 ​
 CREATE EXTERNAL TABLE aa (a1 INT, a2 STRING, a3 STRING, a4 STRING, a5 INT, a6 STRING, a7 INT, a8 INT, a9 INT)
-ROW FORMAT DELIMITED FIELDS TERMINATED BY  ','
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ‘,’
 STORED AS TEXTFILE
-LOCATION '/user/wendy/from_hive';
+LOCATION ‘/user/wendy/from_hive’;
 ​
 select * from aa limit 3;
 #OK
@@ -103,26 +103,25 @@ select * from aa limit 3;
 ​
 INSERT OVERWRITE TABLE aa SELECT * FROM ta;
 ​
- select * from aa limit 3;
+select * from aa limit 3;
 #OK
 #1	M	M	Primary	500	Good	0	0	0
 #2	F	M	Primary	500	Good	0	0	0
 #3	M	S	Primary	500	Good	0	0	0
 #Time taken: 0.079 seconds, Fetched: 3 row(s)
 
-
 Convert csv to orc:
 CREATE EXTERNAL TABLE da (a1 INT, a2 INT, a3 INT, a4 INT, a5 INT, a6 INT, a7 DOUBLE, a8 DOUBLE, a9 INT)
- ROW FORMAT DELIMITED FIELDS TERMINATED BY  ','
- STORED AS TEXTFILE;
-LOAD DATA local INPATH '/home/nidhi/prostate.csv' OVERWRITE INTO TABLE bb;
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ‘,’
+STORED AS TEXTFILE;
+LOAD DATA local INPATH ‘/home/nidhi/prostate.csv’ OVERWRITE INTO TABLE bb;
 ​
 select * from da limit 3;
 ​
 ​
 CREATE EXTERNAL TABLE bb (a1 INT, a2 INT, a3 INT, a4 INT, a5 INT, a6 INT, a7 DOUBLE, a8 DOUBLE, a9 INT)
 STORED AS ORC
-LOCATION '/user/nidhi/from_hive_prna';
+LOCATION ‘/user/nidhi/from_hive_prna’;
 
 INSERT OVERWRITE TABLE bb
 SELECT *
@@ -130,8 +129,7 @@ FROM da;
 ​
 select * from bb limit 3;
 
-
-# create table for milsongs
+create table for milsongs
 create external table milsongs (
 c1 INT,
 c2 DOUBLE,
@@ -224,5 +222,3 @@ c88 DOUBLE,
 c89 DOUBLE,
 c90 DOUBLE,
 c91 DOUBLE)
-
-
