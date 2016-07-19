@@ -302,7 +302,7 @@ abstract public class Log {
     p.setProperty("log4j.logger.org.reflections.Reflections",   "ERROR");
     p.setProperty("log4j.logger.com.brsanthu.googleanalytics",  "ERROR");
 
-    // Turn down the logging for orc
+    // Turn down the logging for external libraries that Orc parser depends on
     p.setProperty("log4j.logger.org.apache.hadoop.util.NativeCodeLoader", "ERROR");
 
     // See the following document for information about the pattern layout.
