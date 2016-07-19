@@ -10,7 +10,7 @@ dependencies {
   //compile "org.apache.avro:avro:1.8.0"
 
   // Orc support
-  compile "org.apache.hadoop:hadoop-client:2.6.0.2.2.0.0-2041"
+//  compile "org.apache.hadoop:hadoop-client:2.6.0.2.2.0.0-2041"
   compile("org.apache.hive:hive-exec:0.14.0.2.2.0.0-2041") {
     exclude module: 'pentaho-aggdesigner-algorithm'
     exclude module: 'calcite-core'
