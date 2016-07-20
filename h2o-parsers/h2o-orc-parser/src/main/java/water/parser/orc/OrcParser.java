@@ -170,7 +170,7 @@ public class OrcParser extends Parser {
    * @return long: correct timestamp corresponding to daysSinceEpoch
      */
   private long correctTimeStamp(long daysSinceEpoch) {
-    long timestamp = (ts*DAY_TO_MS+ADD_OFFSET);
+    long timestamp = (daysSinceEpoch*DAY_TO_MS+ADD_OFFSET);
 
     DateTime date = new DateTime(timestamp);
 
