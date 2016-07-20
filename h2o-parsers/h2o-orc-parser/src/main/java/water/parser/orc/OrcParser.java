@@ -7,6 +7,8 @@ import org.apache.hadoop.hive.ql.io.orc.RecordReader;
 import org.apache.hadoop.hive.ql.io.orc.StripeInformation;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.*;
+import org.joda.time.DateTime;
+import org.joda.time.MutableDateTime;
 import water.H2O;
 import water.Iced;
 import water.Job;
@@ -45,9 +47,15 @@ public class OrcParser extends Parser {
   private BufferedString bs = new BufferedString();
   public static final int DAY_TO_MS = 24*3600*1000;
   public static final int ADD_OFFSET = 8*3600*1000;
+  public static final int HOUR_OFFSET = 3600000;  // in ms to offset for leap seconds, years
+  private MutableDateTime epoch = new MutableDateTime();  // used to help us out the leap seconds, years
+
 
   OrcParser(ParseSetup setup, Key<Job> jobKey) {
     super(setup, jobKey);
+
+    epoch.setDate(0);   // used to figure out leap seconds, years
+
     this.orcFileReader = ((OrcParser.OrcParseSetup) setup).orcFileReader;
   }
 
@@ -151,6 +159,30 @@ public class OrcParser extends Parser {
   }
 
   /**
+   * This method is written to take care of the leap seconds, leap year effects.  Our original
+   * plan of converting number of days from epoch does not quite work out right due to all these
+   * leap seconds, years accumulated over the century.  However, I do notice that when we are
+   * not correcting for the leap seconds/years, if we build a dateTime object, the hour does not
+   * work out to be 00.  Instead it is off.  In this case, we just calculate the offset and take
+   * if off our straight forward timestamp calculation.
+   *
+   * @param daysSinceEpoch: number of days since epoch (1970 1/1)
+   * @return long: correct timestamp corresponding to daysSinceEpoch
+     */
+  private long correctTimeStamp(long daysSinceEpoch) {
+    long timestamp = (ts*DAY_TO_MS+ADD_OFFSET);
+
+    DateTime date = new DateTime(timestamp);
+
+    int hour = date.hourOfDay().get();
+
+    if (hour == 0)
+      return timestamp;
+    else
+      return (timestamp-HOUR_OFFSET);
+  }
+
+  /**
    * This method writes one column of H2O frame for column type timestamp.  This is just a long that
    * records the number of seconds since Jan 1, 2015.
    *
@@ -174,7 +206,7 @@ public class OrcParser extends Parser {
           break;
         default:
           for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-            dout.addNumCol(cIdx, (oneColumn[rowIndex]*DAY_TO_MS+ADD_OFFSET));
+            dout.addNumCol(cIdx, correctTimeStamp(oneColumn[rowIndex]));
           }
         }
 
@@ -190,8 +222,9 @@ public class OrcParser extends Parser {
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
           if (isNull[rowIndex])
             dout.addInvalidCol(cIdx);
-          else
-                dout.addNumCol(cIdx, (oneColumn[rowIndex] * DAY_TO_MS + ADD_OFFSET));
+          else {
+            dout.addNumCol(cIdx, correctTimeStamp(oneColumn[rowIndex]));
+          }
         }
       }
     }

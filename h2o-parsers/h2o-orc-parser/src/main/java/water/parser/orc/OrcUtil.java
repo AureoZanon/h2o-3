@@ -48,14 +48,15 @@ public final class OrcUtil {
       case "boolean":
       case "smallint":
       case "tinyint":
-      case "bigint":
+      case "bigint":  // FIXME: make sure this is fixed by Tomas.
       case "int":
       case "float":
       case "double":
       case "decimal":
-      case "timestamp":  // FIXME: make timestamp is interpreted correctly.
-      case "date":       // FIXME: make timestamp is interpreted correctly.
         return Vec.T_NUM;
+      case "timestamp":
+      case "date":
+        return Vec.T_TIME;
       case "string":
       case "varchar":
       case "binary":  // FIXME: make sure binary is interpreted correctly.  Set to string for now.
