@@ -1,4 +1,3 @@
-
 package water.parser.orc;
 
 import org.apache.hadoop.hive.common.type.HiveDecimal;
