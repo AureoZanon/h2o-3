@@ -2523,3 +2523,127 @@ def write_hyper_parameters_json(dir1, dir2, json_filename, hyper_parameters):
     # save hyper-parameter file in sandbox
     with open(os.path.join(dir2, json_filename), 'w') as test_file:
         json.dump(hyper_parameters, test_file)
+
+def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0):
+    """
+    This function will compare two H2O frames to make sure their dimension, and values in all cells are the same.
+    It will not compare the column names though.
+
+    :param frame1: H2O frame to be compared
+    :param frame2: H2O frame to be compared
+    :param numElements: integer to denote number of rows to compare.  Done to reduce compare time.
+        Set to 0 or negative number if you want to compare all elements.
+    :param tol_time: optional parameter to limit time value difference.
+    :param tol_numerica: optional parameter to limit numeric value difference.
+
+    :return: boolean: True, the two frames are equal and False otherwise.
+    """
+
+    # check frame dimensions
+    rows1, cols1 = frame1.dim
+    rows2, cols2 = frame2.dim
+    na_present = False  # no NAs found in frame
+
+    assert rows1 == rows2 and cols1 == cols2, "failed dim check! frame 1 rows:{0} frame 2 rows:{1} frame 1 cols:{2} " \
+                                              "frame2 cols:{3}".format(rows1, rows2, cols1, cols2)
+
+    na_frame1 = frame1.isna().sum()
+    na_frame2 = frame2.isna().sum()
+
+    # check number of missing values
+    assert na_frame1 == na_frame2, "failed numbers of NA check!  Frame 1 NA number: {0}, frame 2 " \
+                                   "NA number: {1}".format(na_frame1, na_frame2)
+
+    # check column types are the same before proceeding to check each row content.
+    for col_ind in range(cols1):
+        c1_key = frame1.columns[col_ind]
+        c2_key = frame2.columns[col_ind]
+        c2_type = frame2.types[c2_key]
+        c1_type = frame1.types[c1_key]
+
+        if str(c2_type) == 'enum':  # orc files do not have enum column type.  We convert it here
+            frame1[col_ind].asfactor()
+        else:   # check other types
+            assert c1_type == c2_type, "failed column type check! frame1 col type: {0}, frame2 col type: " \
+                                       "{1}".format(c1_type, c2_type)
+        # compare string
+        if str(c1_type) == 'string':
+            compareOneStringColumn(frame1, frame2, col_ind, rows1, numElements)
+        else:
+            if str(c2_type) == 'time':  # compare time columns
+                compareOneNumericColumn(frame1, frame2, col_ind, rows1, tol_time, numElements)
+            else:
+                compareOneNumericColumn(frame1, frame2, col_ind, rows1, tol_numeric, numElements)
+    return True
+
+
+def compareOneStringColumn(frame1, frame2, col_ind, rows, numElements):
+    """
+    This function will compare two String columns of two H2O frames to make sure that they are the same.
+
+    :param frame1: H2O frame to be compared
+    :param frame2: H2O frame to be compared
+    :param col_ind: integer denoting column index to compare the two frames
+    :param rows: integer denoting number of rows in the column
+    :param numElements: integer to denote number of rows to compare.  Done to reduce compare time
+    :return: None.  Will throw exceptions if comparison failed.
+    """
+
+    row_indices = list(range(rows))
+    if numElements > 0:
+        random.shuffle(row_indices)
+    else:
+        numElements = rows
+
+    for ele_ind in range(numElements):
+        row_ind = row_indices[ele_ind]
+
+        val1 = frame1[row_ind, col_ind]
+        val2 = frame2[row_ind, col_ind]
+
+        if not(math.isnan(val1)) and not(math.isnan(val2)): # both frames contain valid elements
+            assert val1 == val2, "failed frame values check! frame1 value: {0}, frame2 value: {1} at row {2}, column " \
+                                 "{3}".format(val1, val2, row_ind, col_ind)
+        elif math.isnan(val1) and math.isnan(val2): # both frame contains missing values
+            continue
+        else:   # something is wrong, one frame got a missing value while the other is fine.
+            assert 1 == 2,  "failed frame values check! frame1 value: {0}, frame2 value: {1} at row {2}, column " \
+                            "{3}".format(val1, val2, row_ind, col_ind)
+
+
+
+
+def compareOneNumericColumn(frame1, frame2, col_ind, rows, tolerance, numElements):
+    """
+    This function compares two numeric columns of two H2O frames to make sure that they are close.
+
+    :param frame1: H2O frame to be compared
+    :param frame2: H2O frame to be compared
+    :param col_ind: integer denoting column index to compare the two frames
+    :param rows: integer denoting number of rows in the column
+    :param tolerance: double parameter to limit numerical value difference.
+    :param numElements: integer to denote number of rows to compare.  Done to reduce compare time.
+    :return: None.  Will throw exceptions if comparison failed.
+    """
+
+    row_indices = list(range(rows))
+    if numElements > 0:
+        random.shuffle(row_indices)
+    else:
+        numElements = rows
+
+    for ele_ind in range(numElements):
+        row_ind = row_indices[ele_ind]
+
+        val1 = frame1[row_ind, col_ind]
+        val2 = frame2[row_ind, col_ind]
+
+        if not(math.isnan(val1)) and not(math.isnan(val2)): # both frames contain valid elements
+            diff = abs(val1-val2)
+            assert diff <= tolerance, "failed frame values check! frame1 value - frame2 value =  {0}, at row {1}, " \
+                                      "column {2}".format(diff, row_ind, col_ind)
+        elif math.isnan(val1) and math.isnan(val2): # both frame contains missing values
+            continue
+        else:   # something is wrong, one frame got a missing value while the other is fine.
+            assert 1 == 2,  "failed frame values check! frame1 value {0}, frame2 value {1} at row {2}, " \
+                            "column {3}".format(val1, val2, row_ind, col_ind)

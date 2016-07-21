@@ -39,6 +39,7 @@ import static water.parser.orc.OrcUtil.schemaToColumnType;
  *  c. For each stripe, get information like rows per stripe, data size in bytes
  * 3.  The plan is to read the file in parallel in whole numbers of stripes.
  * 4.  Inside each stripe, we will read data out in batches of VectorizedRowBatch (1024 rows or less).
+ *
  */
 public class OrcParser extends Parser {
 
@@ -128,7 +129,6 @@ public class OrcParser extends Parser {
         case "int":
         case "smallint":
         case "tinyint":
-
           writeLongcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
           break;
         case "float":
