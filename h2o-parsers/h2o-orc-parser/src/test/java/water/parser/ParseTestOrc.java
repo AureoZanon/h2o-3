@@ -11,6 +11,7 @@ import org.apache.hadoop.hive.ql.io.orc.StripeInformation;
 import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.joda.time.DateTime;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import water.TestUtil;
@@ -46,6 +47,7 @@ public class ParseTestOrc extends TestUtil {
   BufferedString tempOrc = new BufferedString();
   public static final int DAY_TO_MS = 24*3600*1000;
   public static final int ADD_OFFSET = 8*3600*1000;
+  public static final int HOUR_OFFSET = 3600000;  // in ms to offset for leap seconds, years
 
   // list all orc files in smalldata/parser/orc directory
   private String[] allOrcFiles = {
@@ -338,7 +340,7 @@ public class ParseTestOrc extends TestUtil {
           assertEquals("Numerical elements should equal: ", oneColumn[rowIndex]/1000000, h2oFrame.at8(frameRowIndex),
                 ERRORMARGIN);
         else
-          assertEquals("Numerical elements should equal: ", oneColumn[rowIndex]*DAY_TO_MS+ADD_OFFSET,
+          assertEquals("Numerical elements should equal: ", correctTimeStamp(oneColumn[rowIndex]),
                   h2oFrame.at8(frameRowIndex), ERRORMARGIN);
       }
 
@@ -397,5 +399,18 @@ public class ParseTestOrc extends TestUtil {
 
       frameRowIndex++;
     }
+  }
+
+  private long correctTimeStamp(long daysSinceEpoch) {
+    long timestamp = (daysSinceEpoch*DAY_TO_MS+ADD_OFFSET);
+
+    DateTime date = new DateTime(timestamp);
+
+    int hour = date.hourOfDay().get();
+
+    if (hour == 0)
+      return timestamp;
+    else
+      return (timestamp-hour*HOUR_OFFSET);
   }
 }

@@ -179,7 +179,7 @@ public class OrcParser extends Parser {
     if (hour == 0)
       return timestamp;
     else
-      return (timestamp-HOUR_OFFSET);
+      return (timestamp-hour*HOUR_OFFSET);
   }
 
   /**
