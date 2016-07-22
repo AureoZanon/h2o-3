@@ -27,9 +27,9 @@ def orc_parser_timestamp_date():
                    "smalldata/parser/orc/TestOrcFile.testDate2038.orc",
                    "smalldata/parser/orc/orc_split_elim.orc"]
 
-    allCsvFiles = ["smalldata/parser/orc/orc2Csv/TestOrcFile.testDate1900.csv",
-                   "smalldata/parser/orc/orc2Csv/TestOrcFile.testDate2038.csv",
-                   "smalldata/parser/orc/orc2Csv/orc_split_elim.csv"]
+    allCsvFiles = ["smalldata/parser/orc/orc2csv/TestOrcFile.testDate1900.csv",
+                   "smalldata/parser/orc/orc2csv/TestOrcFile.testDate2038.csv",
+                   "smalldata/parser/orc/orc2csv/orc_split_elim.csv"]
 
     for fIndex in range(len(allOrcFiles)):
 
