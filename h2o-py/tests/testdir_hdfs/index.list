@@ -1,3 +1,4 @@
 pyunit_INTERNAL_HDFS_basic.py
 pyunit_INTERNAL_HDFS_import_export.py
+pyunit_INTERNAL_HDFS_orc_parser.py
 
