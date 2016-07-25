@@ -30,6 +30,7 @@ public final class OrcUtil {
       case "timestamp":
       case "tinyint":
       case "varchar":
+      case "enum":
         return true;
       default:
         return false;
@@ -57,6 +58,8 @@ public final class OrcUtil {
       case "timestamp":
       case "date":
         return Vec.T_TIME;
+      case "enum":
+        return Vec.T_CAT;
       case "string":
       case "varchar":
       case "binary":  // FIXME: make sure binary is interpreted correctly.  Set to string for now.

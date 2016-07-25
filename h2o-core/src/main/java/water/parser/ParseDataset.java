@@ -947,13 +947,20 @@ public final class ParseDataset {
         case "ARFF":
         case "CSV":
           Categorical [] categoricals = categoricals(_cKey, _setup._number_columns);
-          dout = new FVecParseWriter(_vg,_startChunkIdx + in.cidx(), categoricals, _setup._column_types, _setup._chunk_size, avs); //TODO: use _setup._domains instead of categoricals
+          dout = new FVecParseWriter(_vg,_startChunkIdx + in.cidx(), categoricals, _setup._column_types,
+                  _setup._chunk_size, avs); //TODO: use _setup._domains instead of categoricals
           break;
         case "SVMLight":
           dout = new SVMLightFVecParseWriter(_vg, _vecIdStart, in.cidx() + _startChunkIdx, _setup._chunk_size, avs);
           break;
+        case "ORC":  // setup special case for ORC
+          Categorical [] orc_categoricals = categoricals(_cKey, _setup._number_columns);
+          dout = new FVecParseWriter(_vg, in.cidx() + _startChunkIdx, orc_categoricals, _setup._column_types,
+                  _setup._chunk_size, avs);
+          break;
         default: // FIXME: should not be default and creation strategy should be forwarded to ParserProvider
-          dout = new FVecParseWriter(_vg, in.cidx() + _startChunkIdx, null, _setup._column_types, _setup._chunk_size, avs);
+          dout = new FVecParseWriter(_vg, in.cidx() + _startChunkIdx, null, _setup._column_types,
+                  _setup._chunk_size, avs);
           break;
         }
         p.parseChunk(in.cidx(), din, dout);

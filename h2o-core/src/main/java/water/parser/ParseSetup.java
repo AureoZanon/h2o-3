@@ -56,6 +56,8 @@ public class ParseSetup extends Iced {
         false,ParseSetup.NO_HEADER,1,null,new byte[]{Vec.T_NUM},null,null,null, new ParseWriter.ParseErr[0]);
   }
 
+  // This method was called during guess setup, lot of things are null, like ctypes.
+  // when it is called again, it either contains the guess column types or it will have user defined column types
   public ParseSetup(ParserInfo parse_type, byte sep, boolean singleQuotes, int checkHeader, int ncols, String[] columnNames, byte[] ctypes, String[][] domains, String[][] naStrings, String[][] data, ParseWriter.ParseErr[] errs, int chunkSize) {
     _parse_type = parse_type;
     _separator = sep;

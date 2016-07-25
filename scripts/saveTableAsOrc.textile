@@ -120,7 +120,6 @@ LOAD DATA local INPATH '/home/nidhi/prostate.csv' OVERWRITE INTO TABLE bb;
 select * from da limit 3;
 ​
 ​
-​
 CREATE EXTERNAL TABLE bb (a1 INT, a2 INT, a3 INT, a4 INT, a5 INT, a6 INT, a7 DOUBLE, a8 DOUBLE, a9 INT)
 STORED AS ORC
 LOCATION '/user/nidhi/from_hive_prna';

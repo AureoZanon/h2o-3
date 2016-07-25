@@ -22,7 +22,7 @@ import static water.fvec.FileVec.getPathForKey;
 public class OrcParserProvider extends ParserProvider {
 
   /* Setup for this parser */
-  static ParserInfo ORC_INFO = new ParserInfo("ORC", DefaultParserProviders.MAX_CORE_PRIO + 20, true, true);
+  static ParserInfo ORC_INFO = new ParserInfo("ORC", DefaultParserProviders.MAX_CORE_PRIO + 20, true, false);
 
   @Override
   public ParserInfo info() {
@@ -39,7 +39,7 @@ public class OrcParserProvider extends ParserProvider {
                                int checkHeader, String[] columnNames, byte[] columnTypes,
                                String[][] domains, String[][] naStrings) {
     if(bv instanceof FileVec)
-      return readSetup((FileVec)bv);
+      return readSetup((FileVec)bv, columnNames, columnTypes, null);
     throw new UnsupportedOperationException("ORC only works on Files");
   }
 
@@ -54,7 +54,8 @@ public class OrcParserProvider extends ParserProvider {
       f = (FileVec) ((Frame) frameOrVec).vec(0);
     else
       f = (FileVec) frameOrVec;
-    return readSetup(f);
+    return readSetup(f, requiredSetup.getColumnNames(), requiredSetup.getColumnTypes(),
+            requiredSetup.getColumnTypeStrings());
   }
   private Reader getReader(FileVec f) throws IOException {
     String strPath = getPathForKey(f._key);
@@ -64,11 +65,43 @@ public class OrcParserProvider extends ParserProvider {
     else
       return OrcFile.createReader(path, OrcFile.readerOptions(new Configuration()));
   }
-  public ParseSetup readSetup(FileVec f) {
+
+  /**
+   * This method will create the readers and others info needed to parse an orc file.
+   * In addition, it will not over-ride the columnNames, columnTypes that the user
+   * may want to force upon it.
+   *
+   * @param f
+   * @param columnNames
+   * @param columnTypes
+     * @return
+     */
+  public ParseSetup readSetup(FileVec f, String[] columnNames, byte[] columnTypes, String[] columnTypeStrings) {
     try {
       Reader orcFileReader = getReader(f);
       StructObjectInspector insp = (StructObjectInspector) orcFileReader.getObjectInspector();
       OrcParser.OrcParseSetup stp = OrcParser.deriveParseSetup(orcFileReader, insp);
+
+      // change back the columnNames and columnTypes if they are specified already
+      if (!(columnNames == null) && (stp.getAllColNames().length == columnNames.length)) { // copy column name
+        stp.setColumnNames(columnNames);
+        stp.setAllColNames(columnNames);
+      }
+
+      if (!(columnTypes == null) && (columnTypes.length == stp.getColumnTypes().length)) { // copy enum type only
+        byte[] old_columnTypes = stp.getColumnTypes();
+        String[] old_columnTypeNames = stp.getColumnTypesString();
+
+        for (int index = 0; index < columnTypes.length; index++) {
+          if (columnTypes[index] == 4) { // only copy the enum types
+            old_columnTypes[index] = columnTypes[index];
+            old_columnTypeNames[index] = "Enum";
+          }
+        }
+        stp.setColumnTypes(old_columnTypes);
+        stp.setColumnTypeStrings(old_columnTypeNames);
+      }
+
       if(stp.stripesInfo.length == 0) { // empty file
         f.setChunkSize(stp._chunk_size = (int)f.length());
         return stp;

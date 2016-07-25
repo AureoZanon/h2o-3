@@ -123,7 +123,7 @@ public class OrcParser extends Parser {
   private void write1column(ColumnVector oneColumn, String columnType, int cIdx, Long rowNumber,
                                    ParseWriter dout) {
     try {
-      switch (columnType) {
+      switch (columnType.toLowerCase()) {
         case "boolean":
         case "bigint":
         case "int":
@@ -132,14 +132,24 @@ public class OrcParser extends Parser {
           writeLongcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
           break;
         case "float":
+        case "real":    // type used by h2o
         case "double":
           writeDoublecolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          break;
+        case "numeric":
+          if (oneColumn.getClass().getName().contains("Long"))
+            writeLongcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          else
+            writeDoublecolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
           break;
         case "string":
         case "varchar":
         case "char":
         case "binary":  //FIXME: only reading it as string right now.
           writeStringcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          break;
+        case "enum":
+          writeEnumColumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
           break;
         case "date":
         case "timestamp":
@@ -157,6 +167,53 @@ public class OrcParser extends Parser {
     }
 
   }
+
+  /**
+   * This method is written to write a column of enums to the frame.  However, enums can be a number
+   * or a string.  Hence, we break this one out and do it on its own
+   *
+   * @param oneEnumColumn
+   * @param columnType
+   * @param noNull
+   * @param isNull
+   * @param cIdx
+   * @param rowNumber
+     * @param dout
+     */
+  private void writeEnumColumn(ColumnVector oneEnumColumn, boolean noNull, boolean[] isNull, int cIdx, Long rowNumber, ParseWriter dout) {
+
+    if (oneEnumColumn.getClass().getName().contains("Long")) {  // a numeric categorical
+      long[] oneColumn = ((LongColumnVector) oneEnumColumn).vector;
+
+      if (noNull) {
+        for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++)
+          dout.addStrCol(cIdx, bs.set(Long.toString(oneColumn[rowIndex])));
+      } else {
+        for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
+          if (isNull[rowIndex])
+            dout.addInvalidCol(cIdx);
+          else
+            dout.addStrCol(cIdx, bs.set(Long.toString(oneColumn[rowIndex])));
+        }
+      }
+    } else {
+      byte[][] oneColumn  = ((BytesColumnVector) oneEnumColumn).vector;
+      int[] stringLength = ((BytesColumnVector) oneEnumColumn).length;
+      int[] stringStart = ((BytesColumnVector) oneEnumColumn).start;
+
+      for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
+        if (isNull[rowIndex])
+          dout.addInvalidCol(cIdx);
+        else {
+          if (stringLength[rowIndex] == 0) {  // string value same as last one, no need to set buffer bs
+            dout.addStrCol(cIdx, bs);
+          } else
+            dout.addStrCol(cIdx, bs.set(oneColumn[rowIndex],stringStart[rowIndex],stringLength[rowIndex]));
+        }
+      }
+    }
+  }
+
 
   /**
    * This method is written to take care of the leap seconds, leap year effects.  Our original
@@ -449,12 +506,21 @@ public class OrcParser extends Parser {
       return this.columnTypesString;
     }
 
+    public void setColumnTypeStrings(String[] columnTypeStrings) {
+      this.columnTypesString = columnTypeStrings;
+    }
+
     public boolean[] getToInclude() { return this.toInclude; }
     public String[] getAllColNames() { return this.allColumnNames; }
+    public void setAllColNames(String[] columnNames) {
+      this.allColumnNames = allColumnNames;
+    }
 
     public void setOrcFileReader(Reader orcFileReader) {
       this.orcFileReader = orcFileReader;
     }
+
+
   }
 
 
