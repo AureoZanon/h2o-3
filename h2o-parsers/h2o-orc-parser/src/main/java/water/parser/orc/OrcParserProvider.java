@@ -93,11 +93,12 @@ public class OrcParserProvider extends ParserProvider {
         String[] old_columnTypeNames = stp.getColumnTypesString();
 
         for (int index = 0; index < columnTypes.length; index++) {
-          if (columnTypes[index] == 4) { // only copy the enum types
+          if (columnTypes[index] == Vec.T_CAT) { // only copy the enum types
             old_columnTypes[index] = columnTypes[index];
             old_columnTypeNames[index] = "Enum";
           }
         }
+
         stp.setColumnTypes(old_columnTypes);
         stp.setColumnTypeStrings(old_columnTypeNames);
       }

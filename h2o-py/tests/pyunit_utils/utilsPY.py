@@ -2524,7 +2524,8 @@ def write_hyper_parameters_json(dir1, dir2, json_filename, hyper_parameters):
     with open(os.path.join(dir2, json_filename), 'w') as test_file:
         json.dump(hyper_parameters, test_file)
 
-def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0):
+
+def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, strict=False):
     """
     This function will compare two H2O frames to make sure their dimension, and values in all cells are the same.
     It will not compare the column names though.
@@ -2535,6 +2536,8 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0):
         Set to 0 or negative number if you want to compare all elements.
     :param tol_time: optional parameter to limit time value difference.
     :param tol_numerica: optional parameter to limit numeric value difference.
+    :param strict: optional parameter to enforce strict comparison or not.  If True, column type must
+        match in order to pass the test.
 
     :return: boolean: True, the two frames are equal and False otherwise.
     """
@@ -2561,13 +2564,17 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0):
         c2_type = frame2.types[c2_key]
         c1_type = frame1.types[c1_key]
 
-        if str(c2_type) == 'enum':  # orc files do not have enum column type.  We convert it here
-            frame1[col_ind].asfactor()
-        else:   # check other types
+        if strict:  # every column type must match
             assert c1_type == c2_type, "failed column type check! frame1 col type: {0}, frame2 col type: " \
                                        "{1}".format(c1_type, c2_type)
+        else:
+            if str(c2_type) == 'enum':  # orc files do not have enum column type.  We convert it here
+                frame1[col_ind].asfactor()
+            else:
+                assert c1_type == c2_type, "failed column type check! frame1 col type: {0}, frame2 col type: " \
+                                           "{1}".format(c1_type, c2_type)
         # compare string
-        if str(c1_type) == 'string':
+        if (str(c1_type) == 'string') or (str(c1_type) == 'enum'):
             compareOneStringColumn(frame1, frame2, col_ind, rows1, numElements)
         else:
             if str(c2_type) == 'time':  # compare time columns

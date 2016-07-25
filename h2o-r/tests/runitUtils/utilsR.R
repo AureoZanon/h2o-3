@@ -421,6 +421,14 @@ h2o_and_R_equal <- function(h2o_obj, r_obj, tolerance = 1e-6) {
   
 }
 
+h2o_and_h2o_equal <- function(h2o_obj, r_obj, tolerance = 1e-6) {
+  df_h2o_obj <- as.data.frame(h2o_obj)
+  df_r_obj <- as.data.frame(r_obj)
+  expect_equal(length(df_h2o_obj), length(df_r_obj))
+
+}
+
+
 #----------------------------------------------------------------------
 # genRegressionData generate a random data set according to the following formula
 # y = W * X + e where e is random Gaussian noise, W is randomly generated and
