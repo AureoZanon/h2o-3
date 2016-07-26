@@ -39,7 +39,7 @@ public class OrcParserProvider extends ParserProvider {
                                int checkHeader, String[] columnNames, byte[] columnTypes,
                                String[][] domains, String[][] naStrings) {
     if(bv instanceof FileVec)
-      return readSetup((FileVec)bv, columnNames, columnTypes, null);
+      return readSetup((FileVec)bv, columnNames, columnTypes);
     throw new UnsupportedOperationException("ORC only works on Files");
   }
 
@@ -54,8 +54,7 @@ public class OrcParserProvider extends ParserProvider {
       f = (FileVec) ((Frame) frameOrVec).vec(0);
     else
       f = (FileVec) frameOrVec;
-    return readSetup(f, requiredSetup.getColumnNames(), requiredSetup.getColumnTypes(),
-            requiredSetup.getColumnTypeStrings());
+    return readSetup(f, requiredSetup.getColumnNames(), requiredSetup.getColumnTypes());
   }
   private Reader getReader(FileVec f) throws IOException {
     String strPath = getPathForKey(f._key);
@@ -76,7 +75,7 @@ public class OrcParserProvider extends ParserProvider {
    * @param columnTypes
      * @return
      */
-  public ParseSetup readSetup(FileVec f, String[] columnNames, byte[] columnTypes, String[] columnTypeStrings) {
+  public ParseSetup readSetup(FileVec f, String[] columnNames, byte[] columnTypes) {
     try {
       Reader orcFileReader = getReader(f);
       StructObjectInspector insp = (StructObjectInspector) orcFileReader.getObjectInspector();
