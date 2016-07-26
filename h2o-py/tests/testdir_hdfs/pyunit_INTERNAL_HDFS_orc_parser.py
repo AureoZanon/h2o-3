@@ -20,8 +20,8 @@ def hdfs_orc_parser():
         tol_numeric = 1e-5
 
         hdfs_name_node = pyunit_utils.hadoop_namenode()
-        hdfs_orc_file = "/datasets/orc_parser/prostate_NB.orc"
-        hdfs_csv_file = "/datesets/orc_parser/prostate_NB.csv"
+        hdfs_orc_file = "/datasets/orc_parser/prostate_NA.orc"
+        hdfs_csv_file = "/datasets/orc_parser/prostate_NA.csv"
 
         print("Importing prostate_NB.orc from HDFS")
         url_orc = "hdfs://{0}{1}".format(hdfs_name_node, hdfs_orc_file)
