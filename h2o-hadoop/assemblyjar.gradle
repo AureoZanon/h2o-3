@@ -46,6 +46,7 @@ shadowJar {
   manifest {
     attributes 'Main-Class': 'water.hadoop.h2odriver'
   }
+  zip64 true
 }
 
 artifacts {
