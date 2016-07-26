@@ -173,7 +173,6 @@ public class OrcParser extends Parser {
    * or a string.  Hence, we break this one out and do it on its own
    *
    * @param oneEnumColumn
-   * @param columnType
    * @param noNull
    * @param isNull
    * @param cIdx
@@ -182,7 +181,8 @@ public class OrcParser extends Parser {
      */
   private void writeEnumColumn(ColumnVector oneEnumColumn, boolean noNull, boolean[] isNull, int cIdx, Long rowNumber, ParseWriter dout) {
 
-    if (oneEnumColumn.getClass().getName().contains("Long")) {  // a numeric categorical
+    String orcColumnType = oneEnumColumn.getClass().getName().toLowerCase();
+    if (orcColumnType.contains("long")) {  // a numeric categorical
       long[] oneColumn = ((LongColumnVector) oneEnumColumn).vector;
 
       if (noNull) {
@@ -196,7 +196,7 @@ public class OrcParser extends Parser {
             dout.addStrCol(cIdx, bs.set(Long.toString(oneColumn[rowIndex])));
         }
       }
-    } else {
+    } else if (orcColumnType.contains("bytes")) { // for char, varchar, string
       byte[][] oneColumn  = ((BytesColumnVector) oneEnumColumn).vector;
       int[] stringLength = ((BytesColumnVector) oneEnumColumn).length;
       int[] stringStart = ((BytesColumnVector) oneEnumColumn).start;
@@ -211,7 +211,22 @@ public class OrcParser extends Parser {
             dout.addStrCol(cIdx, bs.set(oneColumn[rowIndex],stringStart[rowIndex],stringLength[rowIndex]));
         }
       }
-    }
+    } else if (orcColumnType.contains("double")) {  // for double and floats
+      double[] oneColumn = ((DoubleColumnVector) oneEnumColumn).vector;
+
+      if (noNull) {
+        for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++)
+          dout.addStrCol(cIdx, bs.set(String.valueOf(oneColumn[rowIndex])));
+      } else {
+        for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
+          if (isNull[rowIndex])
+            dout.addInvalidCol(cIdx);
+          else
+            dout.addStrCol(cIdx, bs.set(String.valueOf(oneColumn[rowIndex])));
+        }
+      }
+    } else
+      throw new IllegalArgumentException("Cannot change the following type to enum: " + orcColumnType);
   }
 
 
