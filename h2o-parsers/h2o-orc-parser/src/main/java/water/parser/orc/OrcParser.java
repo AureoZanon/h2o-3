@@ -10,7 +10,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.joda.time.DateTime;
 import org.joda.time.MutableDateTime;
 import water.H2O;
-import water.Iced;
 import water.Job;
 import water.Key;
 import water.parser.*;
@@ -86,7 +85,8 @@ public class OrcParser extends Parser {
     final int ncols = columnNames.length;
     String [] orcTypes = setup.getColumnTypesString();
     try {
-      RecordReader perStripe = orcFileReader.rows(thisStripe.getOffset(), thisStripe.getDataLength(), setup.getToInclude(), null, setup.getColumnNames());
+      RecordReader perStripe = orcFileReader.rows(thisStripe.getOffset(), thisStripe.getDataLength(),
+              setup.getToInclude(), null, setup.getColumnNames());
       VectorizedRowBatch batch = perStripe.nextBatch(null);  // read orc file stripes in vectorizedRowBatch
       boolean done = false;
       long rowCounts = 0L;
@@ -163,9 +163,7 @@ public class OrcParser extends Parser {
       }
     } catch(Throwable t ) {
       t.printStackTrace();
-
     }
-
   }
 
   /**
@@ -179,7 +177,8 @@ public class OrcParser extends Parser {
    * @param rowNumber
      * @param dout
      */
-  private void writeEnumColumn(ColumnVector oneEnumColumn, boolean noNull, boolean[] isNull, int cIdx, Long rowNumber, ParseWriter dout) {
+  private void writeEnumColumn(ColumnVector oneEnumColumn, boolean noNull, boolean[] isNull, int cIdx, Long rowNumber,
+                               ParseWriter dout) {
 
     String orcColumnType = oneEnumColumn.getClass().getName().toLowerCase();
     if (orcColumnType.contains("long")) {  // a numeric categorical
@@ -425,39 +424,10 @@ public class OrcParser extends Parser {
     }
   }
 
-
-  public static class IcedStripeInfo extends Iced implements StripeInformation{
-    long _off;
-    long _len;
-    long _row;
-    long _dlen;
-    long _indexLen;
-    long _flen;
-
-    public IcedStripeInfo(StripeInformation si) {
-      _off = si.getOffset();
-      _len = si.getLength();
-      _row = si.getNumberOfRows();
-      _dlen = si.getDataLength();
-      _indexLen = si.getIndexLength();
-      _flen = si.getFooterLength();
-    }
-    @Override public long getOffset() {return  _off;}
-    @Override public long getLength() {return _len;}
-    @Override public long getNumberOfRows() {return _row;}
-    @Override public long getIndexLength() { return _indexLen;}
-    @Override public long getDataLength() {return _dlen;}
-    @Override public long getFooterLength() {return _flen;}
-  }
-
   public static class OrcParseSetup extends ParseSetup {
     // expand to include Orc specific fields
     transient Reader orcFileReader;
-    long[] cumstripeSizes;   // stripe size, max of all stripe sizes
-    long totalFileSize;
-    IcedStripeInfo [] stripesInfo;
     String[] columnTypesString;
-    long maxStripeSize;   // biggest stripe size
     boolean[] toInclude;
     String[] allColumnNames;
 
@@ -468,23 +438,13 @@ public class OrcParser extends Parser {
                          String[][] naStrings,
                          String[][] data,
                          Reader orcReader,
-                         long[] allstripes,
-                         long fileSize,
-                         List<StripeInformation> stripesInfo,
                          String[] columntypes,
-                         long maxStripeSize,
                          boolean[] toInclude,
                          String[] allColNames) {
       super(OrcParserProvider.ORC_INFO, (byte) '|', true, HAS_HEADER ,
               ncols, columnNames, ctypes, domains, naStrings, data);
       this.orcFileReader = orcReader;
-      this.cumstripeSizes = allstripes;
-      this.totalFileSize = fileSize;
-      this.stripesInfo = new IcedStripeInfo[stripesInfo.size()];
-      for(int i = 0; i < this.stripesInfo.length; ++i)
-        this.stripesInfo[i] = new IcedStripeInfo(stripesInfo.get(i));
       this.columnTypesString = columntypes;
-      this.maxStripeSize = maxStripeSize;
       this.toInclude = toInclude;
       this.allColumnNames = allColNames;
     }
@@ -494,24 +454,6 @@ public class OrcParser extends Parser {
     protected Parser parser(Key jobKey) {
       return new OrcParser(this, jobKey);
     }
-
-    // this returns a copy of this.cumstripeSizes
-    public Long[] getCumstripeSizes() {
-      int arrayLength = this.cumstripeSizes.length;
-
-      Long[] tempArray = new Long[arrayLength];
-      for (int index = 0; index < arrayLength; index++) {
-        tempArray[index] = this.cumstripeSizes[index];
-      }
-
-      return tempArray;
-    }
-
-    public Long getTotalFileSize() {
-      return this.totalFileSize;
-    }
-
-    public StripeInformation [] getStripeInfo() {return this.stripesInfo;}
 
     public Reader getOrcFileReader() {
       return this.orcFileReader;
@@ -534,43 +476,16 @@ public class OrcParser extends Parser {
     public void setOrcFileReader(Reader orcFileReader) {
       this.orcFileReader = orcFileReader;
     }
-
-
   }
 
-
-//  /**
-//   * This method basically grab the reader, the inspector of an orc file.  However, it will
-//   * return null if an exception was found.
-//   * @param bits
-//   * @param processor
-//   * @param <T>
-//   * @return
-//   * @throws IOException
-//     */
-//  static <T> T runOnPreview(byte[] bits, OrcPreviewProcessor<T> processor) throws IOException {
-//    try {
-//      String tempFile = "tempFile";
-//      Configuration conf = new Configuration();
-//      FileUtils.writeByteArrayToFile(new File(tempFile), bits);
-//
-//      Path p = new Path(tempFile);
-//      Reader orcFileReader = OrcFile.createReader(p, OrcFile.readerOptions(conf));     // orc reader
-//      StructObjectInspector insp = (StructObjectInspector) orcFileReader.getObjectInspector();
-//
-//      return processor.process(orcFileReader, insp);
-//    } catch (IOException safeToIgnore) {
-//      return null;
-//    }
-//  }
-
-  // types are flattened in pre-order tree walk, here we just count the number of fields for non-primitve types which are ignored for now
+  // types are flattened in pre-order tree walk, here we just count the number of fields for non-primitve types
+  // which are ignored for now
   static private int countStructFields(ObjectInspector x, ArrayList<String> allColumnNames) {
     int res = 1;
     switch(x.getCategory()) {
       case STRUCT:
         StructObjectInspector structObjectInspector = (StructObjectInspector) x;
-        List<StructField> allColumns = (List<StructField>) structObjectInspector.getAllStructFieldRefs();  // grab column info
+        List<StructField> allColumns = (List<StructField>) structObjectInspector.getAllStructFieldRefs(); // column info
         for (StructField oneField : allColumns) {
           allColumnNames.add(oneField.getFieldName());
           res += countStructFields(oneField.getFieldObjectInspector(),allColumnNames);
@@ -671,11 +586,7 @@ public class OrcParser extends Parser {
             null,
             new String[][] { dataPreview },
             orcFileReader,
-            stripeSizes,
-            fileSize,
-            allStripes,
             dataTypes,
-            maxStripeSize,
             toInclude,
             allNames
     );

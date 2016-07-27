@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.Path;
 
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.Reader;
+import org.apache.hadoop.hive.ql.io.orc.StripeInformation;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import water.*;
 import water.fvec.*;
@@ -12,6 +13,7 @@ import water.parser.*;
 import water.persist.PersistHdfs;
 
 import java.io.IOException;
+import java.util.List;
 
 import static water.fvec.FileVec.getPathForKey;
 
@@ -110,15 +112,16 @@ public class OrcParserProvider extends ParserProvider {
         stp.setColumnTypeStrings(old_columnTypeNames);
       }
 
-      if(stp.stripesInfo.length == 0) { // empty file
+      List<StripeInformation> stripesInfo = orcFileReader.getStripes();
+      if(stripesInfo.size() == 0) { // empty file
         f.setChunkSize(stp._chunk_size = (int)f.length());
         return stp;
       }
-      stp._chunk_size = (int)(f.length()/(stp.stripesInfo.length));
-      if((f.length()%stp.stripesInfo.length) != 0) // need  exact match between stripes and chunks
-        stp._chunk_size = (int)((f.length()+stp.stripesInfo.length)/stp.stripesInfo.length);
+      stp._chunk_size = (int)(f.length()/(stripesInfo.size()));
+      if((f.length()%stripesInfo.size()) != 0) // need  exact match between stripes and chunks
+        stp._chunk_size = (int)((f.length()+stripesInfo.size())/stripesInfo.size());
       f.setChunkSize(stp._chunk_size);
-      assert f.nChunks() == stp.stripesInfo.length; // ORC parser needs one-to one mapping between chunk and strip (just ids, offsets do not matter)
+      assert f.nChunks() == stripesInfo.size(); // ORC parser needs one-to one mapping between chunk and strip (just ids, offsets do not matter)
       return stp;
     } catch(IOException ioe) {
       throw new RuntimeException(ioe);
