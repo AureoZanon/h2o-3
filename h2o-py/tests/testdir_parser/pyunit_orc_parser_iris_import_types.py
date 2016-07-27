@@ -10,7 +10,7 @@ from tests import pyunit_utils
 
 
 def continuous_or_categorical_orc():
-    numElements2Compare = 0
+    numElements2Compare = 100
     tol_time = 200
     tol_numeric = 1e-5
 

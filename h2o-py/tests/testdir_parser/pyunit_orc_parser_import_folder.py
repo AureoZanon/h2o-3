@@ -9,7 +9,7 @@ def import_folder():
 
   tol_time = 200              # comparing in ms or ns
   tol_numeric = 1e-5          # tolerance for comparing other numeric fields
-  numElements2Compare = 0   # choose number of elements per column to compare.  Save test time.
+  numElements2Compare = 100   # choose number of elements per column to compare.  Save test time.
 
   multi_file_csv = h2o.import_file(path=pyunit_utils.locate("smalldata/synthetic_perfect_separation"))
   combined_csv = h2o.import_file(path=pyunit_utils.locate("smalldata/parser/orc/orc2csv/combined.csv"))

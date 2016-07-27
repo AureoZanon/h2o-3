@@ -2545,7 +2545,6 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, stric
     # check frame dimensions
     rows1, cols1 = frame1.dim
     rows2, cols2 = frame2.dim
-    na_present = False  # no NAs found in frame
 
     assert rows1 == rows2 and cols1 == cols2, "failed dim check! frame 1 rows:{0} frame 2 rows:{1} frame 1 cols:{2} " \
                                               "frame2 cols:{3}".format(rows1, rows2, cols1, cols2)
