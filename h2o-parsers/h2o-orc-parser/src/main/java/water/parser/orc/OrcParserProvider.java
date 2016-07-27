@@ -43,10 +43,16 @@ public class OrcParserProvider extends ParserProvider {
     throw new UnsupportedOperationException("ORC only works on Files");
   }
 
+  /**
+   * Use only the first file to setup everything.
+   *
+   * @param inputs  input keys
+   * @param requiredSetup  user given parser setup
+   * @return
+     */
   @Override
   public ParseSetup createParserSetup(Key[] inputs, ParseSetup requiredSetup) {
-    if(inputs.length != 1)
-      throw H2O.unimpl("ORC only supports single file parse at the moment");
+
     FileVec f;
     Object frameOrVec = DKV.getGet(inputs[0]);
 
@@ -56,6 +62,7 @@ public class OrcParserProvider extends ParserProvider {
       f = (FileVec) frameOrVec;
     return readSetup(f, requiredSetup.getColumnNames(), requiredSetup.getColumnTypes());
   }
+
   private Reader getReader(FileVec f) throws IOException {
     String strPath = getPathForKey(f._key);
     Path path = new Path(strPath);
@@ -68,7 +75,8 @@ public class OrcParserProvider extends ParserProvider {
   /**
    * This method will create the readers and others info needed to parse an orc file.
    * In addition, it will not over-ride the columnNames, columnTypes that the user
-   * may want to force upon it.
+   * may want to force upon it.  However, we only allow users to set column types to
+   * enum at this point and ignore all the other requests.
    *
    * @param f
    * @param columnNames
@@ -117,11 +125,12 @@ public class OrcParserProvider extends ParserProvider {
     }
   }
   @Override
-  public void setupLocal(Vec v, ParseSetup setup){
+  public ParseSetup setupLocal(Vec v, ParseSetup setup){
     if(!(v instanceof FileVec)) throw H2O.unimpl("ORC only implemented for HDFS / NFS files");
     try {
-      if(((OrcParser.OrcParseSetup)setup).getOrcFileReader() == null)
-        ((OrcParser.OrcParseSetup)setup).setOrcFileReader(getReader((FileVec)v));
+      ((OrcParser.OrcParseSetup)setup).setOrcFileReader(getReader((FileVec)v));
+      return setup;
+
     } catch (IOException e) {throw new RuntimeException(e);}
   }
 }

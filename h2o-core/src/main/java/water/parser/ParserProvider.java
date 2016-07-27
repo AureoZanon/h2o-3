@@ -1,6 +1,5 @@
 package water.parser;
 
-import water.Freezable;
 import water.Job;
 import water.Key;
 import water.fvec.ByteVec;
@@ -36,5 +35,5 @@ public abstract class ParserProvider {
    * @param v
    * @param setup
    */
-  public void setupLocal(Vec v, ParseSetup setup){}
+  public ParseSetup setupLocal(Vec v, ParseSetup setup){ return setup;}
 }

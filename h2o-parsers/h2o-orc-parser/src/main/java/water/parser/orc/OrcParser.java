@@ -77,10 +77,10 @@ public class OrcParser extends Parser {
   @Override
   protected final ParseWriter parseChunk(int chunkId, ParseReader din, ParseWriter dout) {
     // only do something if within file size and the orc file is not empty
-    StripeInformation [] stripesInfo = ((OrcParseSetup) this._setup).getStripeInfo();
-    if(stripesInfo.length == 0) return dout; // empty file
+    List<StripeInformation> stripesInfo = ((OrcParseSetup) this._setup).getOrcFileReader().getStripes();
+    if(stripesInfo.size() == 0) return dout; // empty file
     OrcParseSetup setup = (OrcParseSetup) this._setup;
-    StripeInformation thisStripe = stripesInfo[chunkId];  // get one stripe
+    StripeInformation thisStripe = stripesInfo.get(chunkId);  // get one stripe
     // write one stripe of data to H2O frame
     final String [] columnNames = setup.getColumnNames();
     final int ncols = columnNames.length;

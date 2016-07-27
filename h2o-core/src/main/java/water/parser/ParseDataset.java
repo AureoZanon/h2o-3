@@ -139,17 +139,22 @@ public final class ParseDataset {
     }
     Log.info("Total file size: "+ PrettyPrint.bytes(totalParseSize));
 
-    // set the parse chunk size for files
-    for( int i = 0; i < keys.length; ++i ) {
-      Iced ice = DKV.getGet(keys[i]);
-      if(ice instanceof FileVec) {
-        ((FileVec) ice).setChunkSize(setup._chunk_size);
-        Log.info("Parse chunk size " + setup._chunk_size);
-      } else if(ice instanceof Frame && ((Frame)ice).vec(0) instanceof FileVec) {
-        ((FileVec) ((Frame) ice).vec(0)).setChunkSize((Frame) ice, setup._chunk_size);
-        Log.info("Parse chunk size " + setup._chunk_size);
+
+    // no need to set this for ORC, it is already done:
+    if (!setup.getParseType().name().contains("ORC")) {
+      for( int i = 0; i < keys.length; ++i ) {
+        Iced ice = DKV.getGet(keys[i]);
+
+        // set the parse chunk size for files
+        if (ice instanceof FileVec) {
+          ((FileVec) ice).setChunkSize(setup._chunk_size);
+          Log.info("Parse chunk size " + setup._chunk_size);
+        } else if (ice instanceof Frame && ((Frame) ice).vec(0) instanceof FileVec) {
+          ((FileVec) ((Frame) ice).vec(0)).setChunkSize((Frame) ice, setup._chunk_size);
+          Log.info("Parse chunk size " + setup._chunk_size);
+        }
       }
-    }
+    } else Log.info("Orc Parse chunk sizes may be different across files");
 
     long memsz = H2O.CLOUD.free_mem();
     if( totalParseSize > memsz*4 )
@@ -899,7 +904,7 @@ public final class ParseDataset {
 
     // ------------------------------------------------------------------------
     private static class DistributedParse extends MRTask<DistributedParse> {
-      private final ParseSetup _setup;
+      private ParseSetup _setup;
       private final int _vecIdStart;
       private final int _startChunkIdx; // for multifile parse, offset of the first chunk in the final dataset
       private final VectorGroup _vg;
@@ -928,7 +933,7 @@ public final class ParseDataset {
         super.setupLocal();
         _visited = new NonBlockingSetInt();
         _espc = MemoryManager.malloc8(_nchunks);
-        ParserService.INSTANCE.getByInfo(_setup._parse_type).setupLocal(_fr.anyVec(),_setup);
+        _setup = ParserService.INSTANCE.getByInfo(_setup._parse_type).setupLocal(_fr.anyVec(),_setup);
       }
       @Override public void map( Chunk in ) {
         if( _jobKey.get().stop_requested() ) throw new Job.JobCancelledException();
