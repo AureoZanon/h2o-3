@@ -2558,10 +2558,13 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, stric
 
     # check column types are the same before proceeding to check each row content.
     for col_ind in range(cols1):
+
         c1_key = frame1.columns[col_ind]
         c2_key = frame2.columns[col_ind]
         c2_type = frame2.types[c2_key]
         c1_type = frame1.types[c1_key]
+
+        print("###### Comparing column: {0} and column type is {1}\n.".format(col_ind, c1_type))
 
         if strict:  # every column type must match
             assert c1_type == c2_type, "failed column type check! frame1 col type: {0}, frame2 col type: " \

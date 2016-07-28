@@ -43,7 +43,7 @@ public class AstFlatten extends AstPrimitive {
       case Vec.T_STR:
         return new ValStr(vec.atStr(new BufferedString(), 0).toString());
       case Vec.T_CAT: // check for missing values
-        return vec.isNA(0)?new ValNum(Double.NaN) : new ValStr(vec.factor(vec.at8(0)));
+        return vec.isNA(0)?new ValStr("NA") : new ValStr(vec.factor(vec.at8(0)));
       default:
         throw H2O.unimpl("The type of vector: " + vec.get_type_str() + " is not supported by " + str());
     }
