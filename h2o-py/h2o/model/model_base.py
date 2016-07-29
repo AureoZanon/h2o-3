@@ -755,7 +755,7 @@ class ModelBase(object):
         if "server" not in list(kwargs.keys()) or not kwargs["server"]: plt.show()
 
 
-    def varimp_plot(self, **kwargs):
+    def varimp_plot(self, num_of_features=None, **kwargs):
         """
         Plots the variable importance for a trained model.
         """
@@ -769,20 +769,43 @@ class ModelBase(object):
             print("matplotlib is required for this function!")
             return
 
+        # check if the model is a glm
+        if self._model_json["algo"] == 'glm':
+          # print statement to used std_coef_plot(), and use std_coef_plt instead
+          print("Variable importance does not apply to GLM! Will use std_coef_plot() instead.")
+          self.std_coef_plot(num_of_features)
+          return
+
         # get the variable importances as a list of tuples, do not use pandas dataframe
         importances = self.varimp(use_pandas=False)
         # features labels correspond to the first value of each tuple in the importances list
         feature_labels = [tup[0] for tup in importances]
         # relative importances correspond to the first value of each tuple in the importances list
         relative_importances = [tup[1] for tup in importances]
-        # set the figure size
-        plt.figure(figsize=(14, 5))
         # specify bar centers on the y axis, but flip the order so largest bar appears at top
         pos = range(len(feature_labels))[::-1]
         # specify the bar lengths
         val = relative_importances
-        plt.barh(pos, val, align='center', height=0.6)
-        plt.yticks(pos, feature_labels)
+
+        # check that num_of_features is an integer
+        if num_of_features == None:
+          num_of_features = len(val)
+        elif type(num_of_features) != int:
+          raise ValueError("num_of_featues must be an integer")
+
+        fig, ax = plt.subplots(1,1, figsize=(14,10))
+        plt.barh(pos[0:num_of_features], val[0:num_of_features], align='center',
+                 height=0.8, color='#1F77B4', edgecolor='none')
+        # Hide the right and top spines, color others grey
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_color('#7B7B7B')
+        ax.spines['left'].set_color('#7B7B7B')
+        # Only show ticks on the left and bottom spines
+        ax.yaxis.set_ticks_position('left')
+        ax.xaxis.set_ticks_position('bottom')
+        plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
+
         # check which algorithm was used to select right plot title
         if self._model_json["algo"] == 'gbm':
             plt.title("Variable Importance: H2O GBM", fontsize=20)
@@ -796,6 +819,95 @@ class ModelBase(object):
             if not ('server' in list(kwargs.keys()) and kwargs['server']): plt.show()
         else:
             raise ValueError("A variable importances plot is not implemented for this type of model")
+
+
+    def std_coef_plot(self, num_of_features=None, **kwargs):
+        """
+        plot a GLM model's standardized coefficient magnitudes.
+
+        :param num_of_features: the number of features shown in the plot.
+
+        :returns: None.
+        """
+        # check for matplotlib. exit if absent.
+        try:
+            imp.find_module('matplotlib')
+            import matplotlib
+            if 'server' in list(kwargs.keys()) and kwargs['server']: matplotlib.use('Agg', warn=False)
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib is required for this function!")
+            return
+
+        # check for six. exit if absent
+        try:
+            imp.find_module('six')
+            import six
+            if 'server' in list(kwargs.keys()) and kwargs['server']: six.use('Agg', warn=False)
+            from six import iteritems
+        except ImportError:
+            print("six is required for this function!")
+            return
+
+        # check that model is a glm
+        if self._model_json["algo"] != 'glm':
+          raise ValueError("Warning: model must be a GLM")
+
+        # get unsorted tuple of labels and coefficients
+        unsorted_norm_coef = self.coef_norm().items()
+        # drop intercept value then sort tuples by the coefficient's absolute value
+        drop_intercept = [tup for tup in unsorted_norm_coef if tup[0] != 'Intercept']
+        norm_coef = sorted(drop_intercept, key=lambda x: abs(x[1]), reverse=True)
+
+        signage = []
+        for element in norm_coef:
+            # if positive including zero, color blue, else color orange (use same colors as Flow)
+            if element[1] >= 0:
+                signage.append('#1F77B4')
+            else:
+                signage.append('#FF7F0E')
+
+        # get feature labels and their corresponding magnitudes
+        feature_labels = [tup[0] for tup in norm_coef]
+        norm_coef_magn = [abs(tup[1]) for tup in norm_coef]
+        # specify bar centers on the y axis, but flip the order so largest bar appears at top
+        pos = range(len(feature_labels))[::-1]
+        # specify the bar lengths
+        val = norm_coef_magn
+
+        # check number of features, default is all the features
+        if num_of_features == None:
+            num_of_features = len(val)
+        elif type(num_of_features) != int:
+            raise ValueError("num_of_featues must be an integer")
+
+        # plot horizontal plot
+        fig, ax = plt.subplots(1,1, figsize=(14,10))
+        plt.barh(pos[0:num_of_features], val[0:num_of_features],
+                 align='center', height=0.8,color = signage, edgecolor='none')
+
+        # generate custom fake lines that will be used as legend entries:
+        color_ids = {'Positive': '#1F77B4', 'Negative': '#FF7F0E'}
+        markers = [plt.Line2D([0,0],[0,0],color=color, marker= 's', linestyle='') for color in color_ids.values()]
+        lgnd = plt.legend(markers, color_ids.keys(), numpoints=1, loc = 'best', frameon = False, fontsize=13)
+        lgnd.legendHandles[0]._legmarker.set_markersize(10)
+        lgnd.legendHandles[1]._legmarker.set_markersize(10)
+
+        # Hide the right and top spines, color others grey
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['bottom'].set_color('#7B7B7B')
+        ax.spines['left'].set_color('#7B7B7B')
+
+        # Only show ticks on the left and bottom spines
+        ax.yaxis.set_ticks_position('left')
+        ax.xaxis.set_ticks_position('bottom')
+        plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
+        plt.tick_params(axis='x',which='minor', bottom='off', top='off',  labelbottom='off')
+        plt.title("Standardized Coef. Magnitudes: H2O GLM", fontsize=20)
+        plt.axis('tight')
+        # show plot
+        if not ('server' in list(kwargs.keys()) and kwargs['server']): plt.show()
 
 
     @staticmethod
