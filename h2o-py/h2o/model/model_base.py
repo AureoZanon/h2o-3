@@ -755,6 +755,49 @@ class ModelBase(object):
         if "server" not in list(kwargs.keys()) or not kwargs["server"]: plt.show()
 
 
+    def varimp_plot(self, **kwargs):
+        """
+        Plots the variable importance for a trained model.
+        """
+        # check for matplotlib. exit if absent.
+        try:
+            imp.find_module('matplotlib')
+            import matplotlib
+            if 'server' in list(kwargs.keys()) and kwargs['server']: matplotlib.use('Agg', warn=False)
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("matplotlib is required for this function!")
+            return
+
+        # get the variable importances as a list of tuples, do not use pandas dataframe
+        importances = self.varimp(use_pandas=False)
+        # features labels correspond to the first value of each tuple in the importances list
+        feature_labels = [tup[0] for tup in importances]
+        # relative importances correspond to the first value of each tuple in the importances list
+        relative_importances = [tup[1] for tup in importances]
+        # set the figure size
+        plt.figure(figsize=(14, 5))
+        # specify bar centers on the y axis, but flip the order so largest bar appears at top
+        pos = range(len(feature_labels))[::-1]
+        # specify the bar lengths
+        val = relative_importances
+        plt.barh(pos, val, align='center', height=0.6)
+        plt.yticks(pos, feature_labels)
+        # check which algorithm was used to select right plot title
+        if self._model_json["algo"] == 'gbm':
+            plt.title("Variable Importance: H2O GBM", fontsize=20)
+            if not ('server' in list(kwargs.keys()) and kwargs['server']): plt.show()
+        elif self._model_json["algo"] == 'drf':
+            plt.title("Variable Importance: H2O DRF", fontsize=20)
+            if not ('server' in list(kwargs.keys()) and kwargs['server']): plt.show()
+        # if H2ODeepLearningEstimator has variable_importances = True
+        elif self._model_json["algo"] == 'deeplearning':
+            plt.title("Variable Importance: H2O Deep Learning", fontsize=20)
+            if not ('server' in list(kwargs.keys()) and kwargs['server']): plt.show()
+        else:
+            raise ValueError("A variable importances plot is not implemented for this type of model")
+
+
     @staticmethod
     def _check_targets(y_actual, y_predicted):
         """Check that y_actual and y_predicted have the same length.
