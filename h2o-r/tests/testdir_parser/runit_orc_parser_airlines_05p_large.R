@@ -18,6 +18,10 @@ test.continuous.or.categorical <- function() {
   col.types=list(by.col.name=col.names, types=col.types))
 
   h2o_and_h2o_equal(airline_part0_csv, airline_part0_orc)   # compare two frames and make sure they are equal
+
+  # Nidhi:  Please add frame summary comparison.  In particular, we would like to compare the sizes of the
+  # two frames.  They should be close within some tolerance.  In flow, they are both about 4MB.
+
 }
 
 doTest("Veryfying R Orc Parser Can Declare Types on Import", test.continuous.or.categorical)
