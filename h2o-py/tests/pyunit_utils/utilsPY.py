@@ -2525,7 +2525,7 @@ def write_hyper_parameters_json(dir1, dir2, json_filename, hyper_parameters):
         json.dump(hyper_parameters, test_file)
 
 
-def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, strict=False):
+def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, strict=False, compare_NA=True):
     """
     This function will compare two H2O frames to make sure their dimension, and values in all cells are the same.
     It will not compare the column names though.
@@ -2538,7 +2538,9 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, stric
     :param tol_numerica: optional parameter to limit numeric value difference.
     :param strict: optional parameter to enforce strict comparison or not.  If True, column type must
         match in order to pass the test.
-
+    :param compare_NA: optional parameter to compare NA or not.  For csv file generated from orc file, the
+        NAs are represented as \N but our CSV will not be able to parse it correctly as NA.  In this case, do
+        not compare the number of NAs.
     :return: boolean: True, the two frames are equal and False otherwise.
     """
 
@@ -2552,8 +2554,8 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, stric
     na_frame1 = frame1.isna().sum()
     na_frame2 = frame2.isna().sum()
 
-    # check number of missing values
-    assert na_frame1 == na_frame2, "failed numbers of NA check!  Frame 1 NA number: {0}, frame 2 " \
+    if compare_NA:      # check number of missing values
+        assert na_frame1 == na_frame2, "failed numbers of NA check!  Frame 1 NA number: {0}, frame 2 " \
                                    "NA number: {1}".format(na_frame1, na_frame2)
 
     # check column types are the same before proceeding to check each row content.
