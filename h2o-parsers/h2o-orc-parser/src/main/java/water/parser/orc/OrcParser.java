@@ -82,20 +82,30 @@ public class OrcParser extends Parser {
     StripeInformation thisStripe = stripesInfo.get(chunkId);  // get one stripe
     // write one stripe of data to H2O frame
     final String [] columnNames = setup.getColumnNames();
-    final int ncols = columnNames.length;
     String [] orcTypes = setup.getColumnTypesString();
+    boolean[] toInclude = setup.getToInclude();
+
     try {
       RecordReader perStripe = orcFileReader.rows(thisStripe.getOffset(), thisStripe.getDataLength(),
               setup.getToInclude(), null, setup.getColumnNames());
       VectorizedRowBatch batch = perStripe.nextBatch(null);  // read orc file stripes in vectorizedRowBatch
+
+      long numCols = batch.numCols;
       boolean done = false;
       long rowCounts = 0L;
       long rowNumber = thisStripe.getNumberOfRows();
       while (!done) {
         long currentBatchRow = batch.count();
         ColumnVector[] dataVectors = batch.cols;
-        for (int col = 0; col < ncols; ++col)    // read one column at a time;
-          write1column(dataVectors[col], orcTypes[col], col, currentBatchRow, dout);
+
+        int colIndex = 0;
+        for (int col = 0; col < numCols; ++col) {  // read one column at a time;
+          if (toInclude[col+1]) {// only write a column if we actually wants it
+            write1column(dataVectors[col], orcTypes[colIndex], colIndex, currentBatchRow, dout);
+            colIndex++;
+          }
+        }
+
         rowCounts = rowCounts + currentBatchRow;    // record number of rows of data actually read
         if (rowCounts >= rowNumber)               // read all rows of the stripe already.
           done = true;
@@ -124,8 +134,8 @@ public class OrcParser extends Parser {
                                    ParseWriter dout) {
     try {
       switch (columnType.toLowerCase()) {
-        case "boolean":
         case "bigint":
+        case "boolean":
         case "int":
         case "smallint":
         case "tinyint":
@@ -145,7 +155,7 @@ public class OrcParser extends Parser {
         case "string":
         case "varchar":
         case "char":
-        case "binary":  //FIXME: only reading it as string right now.
+//        case "binary":  //FIXME: only reading it as string right now.
           writeStringcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
           break;
         case "enum":

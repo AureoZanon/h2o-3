@@ -18,7 +18,7 @@ public final class OrcUtil {
     switch (s.toLowerCase()) {
       case "boolean":
       case "bigint":  // long
-      case "binary":
+//      case "binary":    // removed binary column type support for now
       case "char":
       case "date":
       case "decimal":
@@ -62,7 +62,7 @@ public final class OrcUtil {
         return Vec.T_CAT;
       case "string":
       case "varchar":
-      case "binary":  // FIXME: make sure binary is interpreted correctly.  Set to string for now.
+//      case "binary":  // Removed binary column type support for now
       case "char":
         return Vec.T_STR;
       default:

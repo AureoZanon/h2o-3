@@ -178,16 +178,22 @@ public class ParseTestOrc extends TestUtil {
 
     // compare number of columns and rows
     int allColNumber = allColInfo.size();    // get and check column number
+    boolean[] toInclude = new boolean[allColNumber+1];
 
     int colNumber = 0 ;
+    int index1 = 0;
     for (StructField oneField:allColInfo) {
       String colType = oneField.getFieldObjectInspector().getTypeName();
 
       if (colType.toLowerCase().contains("decimal"))
         colType = "decimal";
 
-      if (isSupportedSchema(colType))
+      if (isSupportedSchema(colType)) {
+        toInclude[index1 + 1] = true;
         colNumber++;
+      }
+
+      index1++;
     }
 
     assertEquals("Number of columns need to be the same: ", colNumber, h2oFrame.numCols());
@@ -196,14 +202,15 @@ public class ParseTestOrc extends TestUtil {
     String[] colNames = new String[colNumber];
     String[] colTypes = new String[colNumber];
     int colIndex = 0;
+
     for (int index = 0; index < allColNumber; index++) {   // get and check column names
-      String typeName = allColInfo.get(colIndex).getFieldObjectInspector().getTypeName();
+      String typeName = allColInfo.get(index).getFieldObjectInspector().getTypeName();
 
       if (typeName.toLowerCase().contains("decimal"))
         typeName = "decimal";
 
       if (isSupportedSchema(typeName)) {
-        colNames[colIndex] = allColInfo.get(colIndex).getFieldName();
+        colNames[colIndex] = allColInfo.get(index).getFieldName();
         colTypes[colIndex] = typeName;
         colIndex++;
       }
@@ -211,7 +218,7 @@ public class ParseTestOrc extends TestUtil {
     assertArrayEquals("Column names need to be the same: ", colNames, h2oFrame._names);
 
     // compare one column at a time of the whole row?
-    compareFrameContents(fileName, failedFiles, h2oFrame, orcReader, colTypes, colNames, null);
+    compareFrameContents(fileName, failedFiles, h2oFrame, orcReader, colTypes, colNames, toInclude);
 
     Long totalRowNumber = orcReader.getNumberOfRows();    // get and check row number
     assertEquals("Number of rows need to be the same: ", totalRowNumber, (Long) h2oFrame.numRows());
@@ -219,8 +226,8 @@ public class ParseTestOrc extends TestUtil {
   }
 
 
-  private void compareFrameContents(String fileName, Set<String> failedFiles, Frame h2oFrame, Reader orcReader, String[] colTypes, String[] colNames,
-                                    boolean[] toInclude) {
+  private void compareFrameContents(String fileName, Set<String> failedFiles, Frame h2oFrame, Reader orcReader,
+                                    String[] colTypes, String[] colNames, boolean[] toInclude) {
     // prepare parameter to read a orc file.
 //    boolean[] toInclude = new boolean[colNumber+1];   // must equal to number of column+1
 //    Arrays.fill(toInclude, true);
@@ -246,9 +253,13 @@ public class ParseTestOrc extends TestUtil {
 
             ColumnVector[] dataVectors = batch.cols;
 
-            for (int cIdx = 0; cIdx < colNames.length; cIdx++) {   // read one column at a time;
-              compare1Cloumn(dataVectors[cIdx], colTypes[cIdx].toLowerCase(), cIdx, currentBatchRow, h2oFrame.vec(colNames[cIdx]),
-                      startRowIndex);
+            int colIndex = 0;
+            for (int cIdx = 0; cIdx < batch.numCols; cIdx++) {   // read one column at a time;
+              if (toInclude[cIdx+1]) {
+                compare1Cloumn(dataVectors[cIdx], colTypes[colIndex].toLowerCase(), colIndex, currentBatchRow,
+                        h2oFrame.vec(colNames[colIndex]), startRowIndex);
+                colIndex++;
+              }
             }
 
             rowCounts = rowCounts + currentBatchRow;    // record number of rows of data actually read
