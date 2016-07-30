@@ -863,9 +863,9 @@ class ModelBase(object):
         for element in norm_coef:
             # if positive including zero, color blue, else color orange (use same colors as Flow)
             if element[1] >= 0:
-                signage.append('#1F77B4')
+                signage.append('#1F77B4') # blue
             else:
-                signage.append('#FF7F0E')
+                signage.append('#FF7F0E') # dark orange
 
         # get feature labels and their corresponding magnitudes
         feature_labels = [tup[0] for tup in norm_coef]
@@ -876,7 +876,7 @@ class ModelBase(object):
         val = norm_coef_magn
 
         # check number of features, default is all the features
-        if num_of_features == None:
+        if num_of_features is None:
             num_of_features = len(val)
         elif type(num_of_features) != int:
             raise ValueError("num_of_featues must be an integer")
@@ -884,14 +884,32 @@ class ModelBase(object):
         # plot horizontal plot
         fig, ax = plt.subplots(1,1, figsize=(14,10))
         plt.barh(pos[0:num_of_features], val[0:num_of_features],
-                 align='center', height=0.8,color = signage, edgecolor='none')
+                 align='center', height=0.8, color=signage[0:num_of_features], edgecolor='none')
 
         # generate custom fake lines that will be used as legend entries:
-        color_ids = {'Positive': '#1F77B4', 'Negative': '#FF7F0E'}
-        markers = [plt.Line2D([0,0],[0,0],color=color, marker= 's', linestyle='') for color in color_ids.values()]
-        lgnd = plt.legend(markers, color_ids.keys(), numpoints=1, loc = 'best', frameon = False, fontsize=13)
-        lgnd.legendHandles[0]._legmarker.set_markersize(10)
-        lgnd.legendHandles[1]._legmarker.set_markersize(10)
+        # check if positive and negative values exist
+        # if positive create positive legend
+        if ('#1F77B4' in signage[0:num_of_features]) and ('#FF7F0E' not in signage[0:num_of_features]):
+          color_ids = {'Positive': '#1F77B4'}
+          markers = [plt.Line2D([0,0], [0, 0], color=color, marker='s', linestyle='')
+                     for color in set(signage[0:num_of_features])]
+          lgnd = plt.legend(markers, color_ids, numpoints=1, loc='best', frameon=False, fontsize=13)
+          lgnd.legendHandles[0]._legmarker.set_markersize(10)
+        # if neg create neg legend
+        elif ('#FF7F0E' in signage[0:num_of_features]) and ('#1F77B4' not in signage[0:num_of_features]):
+          color_ids = {'Negative': '#FF7F0E'}
+          markers = [plt.Line2D([0,0], [0, 0], color=color, marker='s', linestyle='')
+                     for color in set(signage[0:num_of_features])]
+          lgnd = plt.legend(markers, color_ids, numpoints=1, loc='best', frameon=False, fontsize=13)
+          lgnd.legendHandles[0]._legmarker.set_markersize(10)
+        # if both provide both colors in legend
+        else:
+          color_ids = {'Positive': '#1F77B4', 'Negative': '#FF7F0E'}
+          markers = [plt.Line2D([0,0], [0, 0], color=color, marker='s', linestyle='')
+                     for color in set(signage[0:num_of_features])]
+          lgnd = plt.legend(markers, color_ids, numpoints=1, loc='best', frameon=False, fontsize=13)
+          lgnd.legendHandles[0]._legmarker.set_markersize(10)
+          lgnd.legendHandles[1]._legmarker.set_markersize(10)
 
         # Hide the right and top spines, color others grey
         ax.spines['right'].set_visible(False)
@@ -903,7 +921,7 @@ class ModelBase(object):
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
         plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
-        plt.tick_params(axis='x',which='minor', bottom='off', top='off',  labelbottom='off')
+        plt.tick_params(axis='x', which='minor', bottom='off', top='off',  labelbottom='off')
         plt.title("Standardized Coef. Magnitudes: H2O GLM", fontsize=20)
         plt.axis('tight')
         # show plot
