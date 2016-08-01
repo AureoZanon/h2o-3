@@ -2643,8 +2643,8 @@ def compareOneNumericColumn(frame1, frame2, col_ind, rows, tolerance, numElement
 
         if not(math.isnan(val1)) and not(math.isnan(val2)): # both frames contain valid elements
             diff = abs(val1-val2)
-            assert diff <= tolerance, "failed frame values check! frame1 value - frame2 value =  {0}, at row {1}, " \
-                                      "column {2}".format(diff, row_ind, col_ind)
+            assert diff <= tolerance, "failed frame values check! frame1 value = {0}, frame2 value =  {1}, at row {2}, " \
+                                      "column {3}".format(val1, val2, row_ind, col_ind)
         elif math.isnan(val1) and math.isnan(val2): # both frame contains missing values
             continue
         else:   # something is wrong, one frame got a missing value while the other is fine.
