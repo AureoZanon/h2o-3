@@ -1,5 +1,5 @@
 setwd(normalizePath(dirname(R.utils::commandArgs(asValues=TRUE)$"f")))
-source("../../../scripts/h2o-r-test-setup.R")
+source("../../scripts/h2o-r-test-setup.R")
 
 # This test is written to make sure that warnings from Orc Parser are passed to the R client.
 # In particulare, the first two Orc files contain unsupported column types.
