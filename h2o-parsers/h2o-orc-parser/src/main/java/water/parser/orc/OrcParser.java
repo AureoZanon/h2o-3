@@ -13,7 +13,7 @@ import water.H2O;
 import water.Job;
 import water.Key;
 import water.parser.*;
-import water.util.Log;
+import water.util.ArrayUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,6 +49,7 @@ public class OrcParser extends Parser {
   public static final int ADD_OFFSET = 8*3600*1000;
   public static final int HOUR_OFFSET = 3600000;  // in ms to offset for leap seconds, years
   private MutableDateTime epoch = new MutableDateTime();  // used to help us out the leap seconds, years
+  private ArrayList<String> storeWarnings = new ArrayList<String>();  // store a list of warnings
 
 
   OrcParser(ParseSetup setup, Key<Job> jobKey) {
@@ -101,7 +102,7 @@ public class OrcParser extends Parser {
         int colIndex = 0;
         for (int col = 0; col < numCols; ++col) {  // read one column at a time;
           if (toInclude[col+1]) {// only write a column if we actually wants it
-            write1column(dataVectors[col], orcTypes[colIndex], colIndex, currentBatchRow, dout);
+            write1column(dataVectors[col], orcTypes[colIndex], colIndex, currentBatchRow, chunkId, din, dout);
             colIndex++;
           }
         }
@@ -130,8 +131,8 @@ public class OrcParser extends Parser {
    * @param rowNumber
      * @param dout
      */
-  private void write1column(ColumnVector oneColumn, String columnType, int cIdx, Long rowNumber,
-                                   ParseWriter dout) {
+  private void write1column(ColumnVector oneColumn, String columnType, int cIdx, Long rowNumber, int chunkIdx,
+                            ParseReader din, ParseWriter dout) {
     try {
       switch (columnType.toLowerCase()) {
         case "bigint":
@@ -139,7 +140,7 @@ public class OrcParser extends Parser {
         case "int":
         case "smallint":
         case "tinyint":
-          writeLongcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          writeLongcolumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, chunkIdx, dout);
           break;
         case "float":
         case "real":    // type used by h2o
@@ -148,7 +149,7 @@ public class OrcParser extends Parser {
           break;
         case "numeric":
           if (oneColumn.getClass().getName().contains("Long"))
-            writeLongcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+            writeLongcolumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, chunkIdx, dout);
           else
             writeDoublecolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
           break;
@@ -156,10 +157,10 @@ public class OrcParser extends Parser {
         case "varchar":
         case "char":
 //        case "binary":  //FIXME: only reading it as string right now.
-          writeStringcolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          writeStringcolumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
           break;
         case "enum":
-          writeEnumColumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          writeEnumColumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, chunkIdx, dout);
           break;
         case "date":
         case "timestamp":
@@ -188,21 +189,25 @@ public class OrcParser extends Parser {
      * @param dout
      */
   private void writeEnumColumn(ColumnVector oneEnumColumn, boolean noNull, boolean[] isNull, int cIdx, Long rowNumber,
-                               ParseWriter dout) {
+                               int chunkIdx, ParseWriter dout) {
 
     String orcColumnType = oneEnumColumn.getClass().getName().toLowerCase();
     if (orcColumnType.contains("long")) {  // a numeric categorical
       long[] oneColumn = ((LongColumnVector) oneEnumColumn).vector;
 
       if (noNull) {
-        for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++)
+        for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
           dout.addStrCol(cIdx, bs.set(Long.toString(oneColumn[rowIndex])));
+          check_Max_Value(oneColumn[rowIndex], cIdx, rowNumber, chunkIdx, dout);
+        }
       } else {
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
           if (isNull[rowIndex])
             dout.addInvalidCol(cIdx);
-          else
+          else {
             dout.addStrCol(cIdx, bs.set(Long.toString(oneColumn[rowIndex])));
+            check_Max_Value(oneColumn[rowIndex], cIdx, rowNumber, chunkIdx, dout);
+          }
         }
       }
     } else if (orcColumnType.contains("bytes")) { // for char, varchar, string
@@ -337,28 +342,36 @@ public class OrcParser extends Parser {
    * binary at some point.
    *
    * @param oneStringColumn
-   * @param columnType
    * @param noNulls
    * @param isNull
    * @param cIdx
    * @param rowNumber
      * @param dout
      */
-  private void writeStringcolumn(ColumnVector oneStringColumn, String columnType, boolean noNulls,
+  private void writeStringcolumn(ColumnVector oneStringColumn, boolean noNulls,
                                         boolean[] isNull, int cIdx, Long rowNumber, ParseWriter dout) {
 
     byte[][] oneColumn  = ((BytesColumnVector) oneStringColumn).vector;
     int[] stringLength = ((BytesColumnVector) oneStringColumn).length;
     int[] stringStart = ((BytesColumnVector) oneStringColumn).start;
 
-    for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-      if (isNull[rowIndex])
-        dout.addInvalidCol(cIdx);
-      else {
+    if (noNulls) {
+      for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
         if (stringLength[rowIndex] == 0) {  // string value same as last one, no need to set buffer bs
           dout.addStrCol(cIdx, bs);
         } else
-          dout.addStrCol(cIdx, bs.set(oneColumn[rowIndex],stringStart[rowIndex],stringLength[rowIndex]));
+          dout.addStrCol(cIdx, bs.set(oneColumn[rowIndex], stringStart[rowIndex], stringLength[rowIndex]));
+      }
+    } else {
+      for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
+        if (isNull[rowIndex])
+          dout.addInvalidCol(cIdx);
+        else {
+          if (stringLength[rowIndex] == 0) {  // string value same as last one, no need to set buffer bs
+            dout.addStrCol(cIdx, bs);
+          } else
+            dout.addStrCol(cIdx, bs.set(oneColumn[rowIndex], stringStart[rowIndex], stringLength[rowIndex]));
+        }
       }
     }
   }
@@ -411,26 +424,52 @@ public class OrcParser extends Parser {
    * tinyint and date.
    *
    * @param oneLongColumn
-   * @param columnType
    * @param noNull
    * @param isNull
    * @param cIdx
    * @param rowNumber
      * @param dout
      */
-  private void writeLongcolumn(ColumnVector oneLongColumn, String columnType, boolean noNull, boolean[] isNull,
-                                      int cIdx, Long rowNumber, ParseWriter dout) {
+  private void writeLongcolumn(ColumnVector oneLongColumn, boolean noNull, boolean[] isNull, int cIdx, Long rowNumber,
+                               int chunkIdx, ParseWriter dout) {
     long[] oneColumn = ((LongColumnVector) oneLongColumn).vector;
+
+//    oneColumn[0] = Long.MAX_VALUE;  // for DEBUG
+
     if (noNull) {
-      for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++)
-        dout.addNumCol(cIdx, oneColumn[rowIndex],0);
+      for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
+        dout.addNumCol(cIdx, oneColumn[rowIndex], 0);
+        check_Max_Value(oneColumn[rowIndex], cIdx, rowNumber, chunkIdx, dout);
+      }
     } else {
       for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
         if (isNull[rowIndex])
           dout.addInvalidCol(cIdx);
-        else
-          dout.addNumCol(cIdx, oneColumn[rowIndex],0);
+        else {
+          dout.addNumCol(cIdx, oneColumn[rowIndex], 0);
+          check_Max_Value(oneColumn[rowIndex], cIdx, rowNumber, chunkIdx, dout);
+        }
       }
+    }
+  }
+
+  /**
+   * This method is written to check and make sure any value written to a column of type long
+   * is less than Long.MAX_VALUE.  If this is not true, a warning will be passed to the user.
+   *
+   * @param l
+   * @param cIdx
+   * @param rowNumber
+   * @param chunkIdx
+   * @param dout
+     */
+  private void check_Max_Value(long l, int cIdx, Long rowNumber, int chunkIdx, ParseWriter dout) {
+    if (l >= Long.MAX_VALUE) {
+      String warning = " Long.MAX_VALUE: " + l + " is found in column "+cIdx+" row "+rowNumber +
+              " of stripe "+chunkIdx +".  This value is used for sentinel and will not be parsed correctly.";
+
+      dout.addError(new ParseWriter.ParseErr(warning, chunkIdx, rowNumber, -2L));
+
     }
   }
 
@@ -557,6 +596,7 @@ public class OrcParser extends Parser {
     String[][] domains = new String[supportedFieldCnt][];
     String[] dataPreview = new String[supportedFieldCnt];
     String[] dataTypes = new String[supportedFieldCnt];
+    ArrayList<String> warnings = new ArrayList<String>();
 
     // go through all column information
     int columnIndex = 0;
@@ -570,7 +610,7 @@ public class OrcParser extends Parser {
         dataTypes[columnIndex] = columnType;
         columnIndex++;
       } else {
-        Log.warn("Skipping field: " + oneField.getFieldName() + " because of unsupported type: " + columnType);
+        warnings.add("Skipping field: " + oneField.getFieldName() + " because of unsupported type: " + columnType);
       }
     }
 
@@ -600,6 +640,12 @@ public class OrcParser extends Parser {
             toInclude,
             allNames
     );
+
+    if (warnings.size() > 0) {
+      for (String warning: warnings) {
+        ps._errs =  ArrayUtils.append(ps._errs, new ParseWriter.ParseErr(warning, -1, -1L, -2L));
+      }
+    }
     return ps;
   }
 }

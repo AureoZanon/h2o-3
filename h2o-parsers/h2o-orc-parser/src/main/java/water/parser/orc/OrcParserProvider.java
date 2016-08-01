@@ -13,7 +13,6 @@ import water.Key;
 import water.fvec.*;
 import water.parser.*;
 import water.persist.PersistHdfs;
-import water.util.Log;
 
 import java.io.IOException;
 import java.util.List;
@@ -137,16 +136,6 @@ public class OrcParserProvider extends ParserProvider {
     try {
 
       ((OrcParser.OrcParseSetup)setup).setOrcFileReader(getReader((FileVec)v));
-      // go through the OrcParseSetup and check for column type bigint, print out a warning for user
-      String[] old_columnTypeNames = ((OrcParser.OrcParseSetup)setup).getColumnTypesString();
-      for (int index = 0; index < old_columnTypeNames.length; index++) {
-        if (old_columnTypeNames[index].toLowerCase().contains("bigint")) {
-          Log.warn("Your file " + v._key + " contains column type " + old_columnTypeNames[index] + "" +
-                  " which may not be parsed correctly if it contains Integer.MAX_VALUE");
-          break;
-        }
-      }
-
       return setup;
 
     } catch (IOException e) {throw new RuntimeException(e);}

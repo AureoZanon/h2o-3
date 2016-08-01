@@ -24,7 +24,11 @@ public interface ParseWriter extends Freezable {
     // filled int he end (when we now the line-counts)
     long _gLineNum = -1;
     public String toString(){
-      return "ParseError at file " + _file + (_gLineNum == -1?"":" at line " + _lineNum + " ( destination line " + _gLineNum + " )") + "  at byte offset " + _byteOffset + "; error = \'" + _err + "\'";
+      // added special warning test for Orc file
+      if (_byteOffset == -2)  // print orc file warning
+        return "Orc parser warning in file " + _file + "; warning = \'"+_err + "\'";
+      else
+        return "ParseError at file " + _file + (_gLineNum == -1?"":" at line " + _lineNum + " ( destination line " + _gLineNum + " )") + "  at byte offset " + _byteOffset + "; error = \'" + _err + "\'";
     }
   }
 

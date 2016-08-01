@@ -63,10 +63,11 @@ class H2OJob(object):
             "Polling finished while the job has status %s" % self.status
         if self.warnings:
             for w in self.warnings:
-                warnings.warn(w)
-        # TODO: this needs to br thought through more carefully
-        #       Right now if the user presses Ctrl+C the progress bar handles this gracefully and passes the
-        #       exception up, but these calls create ugly stacktrace dumps...
+                if not(w == None):
+                    warnings.warn(w)
+                else:
+                    break
+
         # check if failed... and politely print relevant message
         if self.status == "CANCELLED":
             raise EnvironmentError("Job with key {} was cancelled by the user.".format(self.job_key))
