@@ -2539,8 +2539,8 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, stric
     :param strict: optional parameter to enforce strict comparison or not.  If True, column type must
         match in order to pass the test.
     :param compare_NA: optional parameter to compare NA or not.  For csv file generated from orc file, the
-        NAs are represented as \N but our CSV will not be able to parse it correctly as NA.  In this case, do
-        not compare the number of NAs.
+        NAs are represented as some other symbol but our CSV will not be able to parse it correctly as NA.
+        In this case, do not compare the number of NAs.
     :return: boolean: True, the two frames are equal and False otherwise.
     """
 
@@ -2566,7 +2566,7 @@ def compare_frames(frame1, frame2, numElements, tol_time=0, tol_numeric=0, stric
         c2_type = frame2.types[c2_key]
         c1_type = frame1.types[c1_key]
 
-        print("###### Comparing column: {0} and column type is {1}\n.".format(col_ind, c1_type))
+        print("###### Comparing column: {0} and column type is {1}.".format(col_ind, c1_type))
 
         if strict:  # every column type must match
             assert c1_type == c2_type, "failed column type check! frame1 col type: {0}, frame2 col type: " \
