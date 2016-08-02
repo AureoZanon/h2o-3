@@ -970,11 +970,6 @@ public final class ParseDataset {
         }
         p.parseChunk(in.cidx(), din, dout);
         (_dout = dout).close(_fs);
-        if(_dout.hasErrors())
-          for(ParseWriter.ParseErr err:_dout._errs) {
-            assert err != null : "Parse error cannot be null!";
-            err._file = _srckey.toString();
-          }
         Job.update(in._len, _jobKey); // Record bytes parsed
         // remove parsed data right away
         freeMem(in);
@@ -1010,6 +1005,7 @@ public final class ParseDataset {
         _outerMFPT._dout[_outerMFPT._lo] = _dout;
         if(_dout.hasErrors()) {
           ParseWriter.ParseErr [] errs = _dout.removeErrors();
+          for(ParseWriter.ParseErr err:errs)err._file = FileVec.getPathForKey(_srckey).toString();
           Arrays.sort(errs, new Comparator<ParseWriter.ParseErr>() {
             @Override
             public int compare(ParseWriter.ParseErr o1, ParseWriter.ParseErr o2) {
