@@ -794,17 +794,34 @@ class ModelBase(object):
           raise ValueError("num_of_featues must be an integer")
 
         fig, ax = plt.subplots(1,1, figsize=(14,10))
-        plt.barh(pos[0:num_of_features], val[0:num_of_features], align='center',
+        # create separate plot for the case where num_of_features = 1
+        if num_of_features == 1:
+            plt.barh(pos[0:num_of_features], val[0:num_of_features], align='center',
+                     height=0.8, color='#1F77B4', edgecolor='none')
+            # Hide the right and top spines, color others grey
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            ax.spines['bottom'].set_color('#7B7B7B')
+            ax.spines['left'].set_color('#7B7B7B')
+            # Only show ticks on the left and bottom spines
+            ax.yaxis.set_ticks_position('left')
+            ax.xaxis.set_ticks_position('bottom')
+            plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
+            ax.margins(y=0.5)
+
+        else:
+            plt.barh(pos[0:num_of_features], val[0:num_of_features], align='center',
                  height=0.8, color='#1F77B4', edgecolor='none')
-        # Hide the right and top spines, color others grey
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['bottom'].set_color('#7B7B7B')
-        ax.spines['left'].set_color('#7B7B7B')
-        # Only show ticks on the left and bottom spines
-        ax.yaxis.set_ticks_position('left')
-        ax.xaxis.set_ticks_position('bottom')
-        plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
+            # Hide the right and top spines, color others grey
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            ax.spines['bottom'].set_color('#7B7B7B')
+            ax.spines['left'].set_color('#7B7B7B')
+            # Only show ticks on the left and bottom spines
+            ax.yaxis.set_ticks_position('left')
+            ax.xaxis.set_ticks_position('bottom')
+            plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
+            ax.margins(y=0.5)
 
         # check which algorithm was used to select right plot title
         if self._model_json["algo"] == 'gbm':
@@ -882,9 +899,36 @@ class ModelBase(object):
             raise ValueError("num_of_featues must be an integer")
 
         # plot horizontal plot
-        fig, ax = plt.subplots(1,1, figsize=(14,10))
-        plt.barh(pos[0:num_of_features], val[0:num_of_features],
-                 align='center', height=0.8, color=signage[0:num_of_features], edgecolor='none')
+        fig, ax = plt.subplots(1, 1)
+        # create separate plot for the case where num_of_features = 1
+        if num_of_features == 1:
+            plt.barh(pos[0], val[0],
+                     align='center', height=0.8, color=signage[0], edgecolor='none')
+            # Hide the right and top spines, color others grey
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            ax.spines['bottom'].set_color('#7B7B7B')
+            ax.spines['left'].set_color('#7B7B7B')
+            # Only show ticks on the left and bottom spines
+            ax.yaxis.set_ticks_position('left')
+            ax.xaxis.set_ticks_position('bottom')
+            plt.yticks([0], feature_labels[0])
+            ax.margins(y=0.5)
+
+        else:
+            plt.barh(pos[0:num_of_features], val[0:num_of_features],
+             align='center', height=0.8, color=signage[0:num_of_features], edgecolor='none')
+            # Hide the right and top spines, color others grey
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            ax.spines['bottom'].set_color('#7B7B7B')
+            ax.spines['left'].set_color('#7B7B7B')
+            # Only show ticks on the left and bottom spines
+            ax.yaxis.set_ticks_position('left')
+            ax.xaxis.set_ticks_position('bottom')
+            plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
+            # plt.axis('tight')
+            ax.margins(y=0.05)
 
         # generate custom fake lines that will be used as legend entries:
         # check if positive and negative values exist
@@ -918,12 +962,12 @@ class ModelBase(object):
         ax.spines['left'].set_color('#7B7B7B')
 
         # Only show ticks on the left and bottom spines
-        ax.yaxis.set_ticks_position('left')
-        ax.xaxis.set_ticks_position('bottom')
+        # ax.yaxis.set_ticks_position('left')
+        # ax.xaxis.set_ticks_position('bottom')
         plt.yticks(pos[0:num_of_features], feature_labels[0:num_of_features])
         plt.tick_params(axis='x', which='minor', bottom='off', top='off',  labelbottom='off')
         plt.title("Standardized Coef. Magnitudes: H2O GLM", fontsize=20)
-        plt.axis('tight')
+        # plt.axis('tight')
         # show plot
         if not ('server' in list(kwargs.keys()) and kwargs['server']): plt.show()
 
