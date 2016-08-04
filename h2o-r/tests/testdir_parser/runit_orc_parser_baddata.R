@@ -9,8 +9,6 @@ test.orc_parser.bad_data <- function() {
   options(warn=1)
   # These files contain unsupported data types
   
-  browser()
-  
   # This file contains column type not supported
   expect_warning(h2o.importFile(locate("smalldata/parser/orc/TestOrcFile.testStringAndBinaryStatistics.orc")))
   
