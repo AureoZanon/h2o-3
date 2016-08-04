@@ -8,12 +8,17 @@ source("../../scripts/h2o-r-test-setup.R")
 test.orc_parser.bad_data <- function() {
   options(warn=1)
   # These files contain unsupported data types
+  
+  browser()
+  
+  # This file contains column type not supported
   expect_warning(h2o.importFile(locate("smalldata/parser/orc/TestOrcFile.testStringAndBinaryStatistics.orc")))
-  expect_warning(h2o.importFile(locate("smalldata/parser/orc/TestOrcFile.emptyFile.orc")))
-
-#  # This file contains big integer value Long.MIN_VALUE that is used for sentinel
+  
+  # This file contains big integer value Long.MIN_VALUE that is used for sentinel
   expect_warning(h2o.importFile(locate("smalldata/parser/orc/nulls-at-end-snappy.orc")))
-
+  
+  # This file contains column type not supported
+  expect_warning(h2o.importFile(locate("smalldata/parser/orc/TestOrcFile.emptyFile.orc")))
 }
 
 doTest("Orc Parser: make sure warnings are passed to user.", test.orc_parser.bad_data)
