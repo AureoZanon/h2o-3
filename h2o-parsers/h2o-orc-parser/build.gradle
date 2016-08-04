@@ -6,8 +6,8 @@ description = "H2O Orc Parser"
 dependencies {
   compile project(":h2o-core")
   compile project(":h2o-persist-hdfs")
-  // Avro support
-  //compile "org.apache.avro:avro:1.8.0"
+//          {     transitive = false    // FIX ME:  Will create problems for Hadoop.
+//          }
 
   // Orc support
 //  compile "org.apache.hadoop:hadoop-client:2.6.0.2.2.0.0-2041"
@@ -17,6 +17,7 @@ dependencies {
     exclude module: 'calcite-avatica'
   }
   compile("org.apache.orc:orc-core:1.1.1") {
+    exclude module: 'protobuf-java'
     exclude module: 'crunch-core'
     exclude module: 'crunch-hive'
   }

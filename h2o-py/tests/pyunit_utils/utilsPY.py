@@ -4,6 +4,7 @@ standard_library.install_aliases()
 from builtins import range
 from past.builtins import basestring
 import sys, os
+from StringIO import StringIO
 sys.path.insert(1, "../../")
 import h2o
 import imp
@@ -2651,3 +2652,37 @@ def compareOneNumericColumn(frame1, frame2, col_ind, rows, tolerance, numElement
         else:   # something is wrong, one frame got a missing value while the other is fine.
             assert 1 == 2,  "failed frame values check! frame1 value {0}, frame2 value {1} at row {2}, " \
                             "column {3}".format(val1, val2, row_ind, col_ind)
+
+import warnings
+
+def expect_warnings(filewithpath, warn_phrase="warn", warn_string_of_interest="warn", number_of_times=1):
+    """
+            This function will execute a command to run and analyze the print outs of
+    running the command.  The goal here is to capture any warnings that we may expect
+    out of running those commands.
+
+    :param filewithpath: name of file to be parsed with path
+    :param warn_phrase: capture the warning header, sometimes it is warn or userwarn.
+    :param warn_string_of_interest: specific warning message string
+    :param number_of_times: number of warning lines we are expecting.
+    :return: True if warning was found and False otherwise
+    """
+
+    number_warngings = 0
+
+    buffer = StringIO()     # redirect warning messages to string buffer for later analysis
+    sys.stderr = buffer
+
+    frame = h2o.import_file(path=locate(filewithpath))
+
+    sys.stderr = sys.__stderr__     # redirect it back to stdout.
+
+    if len(buffer.buflist) > 0:
+        for index in range(len(buffer.buflist)):
+            if (warn_phrase in buffer.buflist[index]) and (warn_string_of_interest in buffer.buflist[index]):
+                number_warngings = number_warngings+1
+
+    if number_warngings >= number_of_times:
+        return True
+    else:
+        return False
