@@ -5,6 +5,7 @@ source("../../scripts/h2o-r-test-setup.R")
 # API for R clients.
 
 test.orc_parser <- function(){
+  Options(warn=1)
   # all orc files that Tom K has found
   allOrcFiles = c("smalldata/parser/orc/TestOrcFile.columnProjection.orc",
       "smalldata/parser/orc/bigint_single_col.orc",
