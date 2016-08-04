@@ -2681,11 +2681,18 @@ def expect_warnings(filewithpath, warn_phrase="warn", warn_string_of_interest="w
     frame = h2o.import_file(path=locate(filewithpath))
 
     sys.stderr = sys.__stderr__     # redirect it back to stdout.
+    try:        # for python 2.7
+        if len(buffer.buflist) > 0:
+            for index in range(len(buffer.buflist)):
+                if (warn_phrase in buffer.buflist[index]) and (warn_string_of_interest in buffer.buflist[index]):
+                    number_warngings = number_warngings+1
+    except:     # for python 3.
+        warns = buffer.getvalue()
 
-    if len(buffer.buflist) > 0:
-        for index in range(len(buffer.buflist)):
-            if (warn_phrase in buffer.buflist[index]) and (warn_string_of_interest in buffer.buflist[index]):
-                number_warngings = number_warngings+1
+        if (warn_phrase in warns) and (warn_string_of_interest in warns):
+            number_warngings = number_warngings+1
+
+        number_of_times = 1
 
     if number_warngings >= number_of_times:
         return True
