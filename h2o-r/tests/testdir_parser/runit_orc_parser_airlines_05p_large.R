@@ -10,12 +10,7 @@ source("../../scripts/h2o-r-test-setup.R")
 test.continuous.or.categorical <- function() {
 
   airline_part0_csv <- h2o.importFile(locate("bigdata/laptop/parser/orc/airlines_import_type/000000_0.csv"))
-
-  col.names = c("_col8", "_col16", "_col17", "_col22", "_col29", "_col30")
-  col.types = c("enum", "enum", "enum", "enum", "enum", "enum")
-
-  airline_part0_orc <- h2o.importFile(locate("bigdata/laptop/parser/orc/airlines_import_type/000000_0.orc"),
-  col.types=list(by.col.name=col.names, types=col.types))
+  airline_part0_orc <- h2o.importFile(locate("bigdata/laptop/parser/orc/airlines_import_type/000000_0.orc"),col.names = names(airline_part0_csv),col.types = c("Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Enum","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Enum","Enum","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Numeric","Enum","Enum"))
 
   h2o_and_h2o_equal(airline_part0_csv, airline_part0_orc)   # compare two frames and make sure they are equal
 
