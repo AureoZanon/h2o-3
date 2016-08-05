@@ -11,12 +11,17 @@ def import_folder():
   tol_numeric = 1e-5          # tolerance for comparing other numeric fields
   numElements2Compare = 0   # choose number of elements per column to compare.  Save test time.
 
-  multi_file_csv = h2o.import_file(path=pyunit_utils.locate("smalldata/synthetic_perfect_separation"))
+  multi_file_csv1 = h2o.import_file(path=pyunit_utils.locate("smalldata/parser/orc/synthetic_perfect_seperation_csv/balunbal.csv"))
+  multi_file_csv2 = h2o.import_file(path=pyunit_utils.locate("smalldata/parser/orc/synthetic_perfect_seperation_csv/unbalbal.csv"))
   multi_file_orc = h2o.import_file(path=pyunit_utils.locate("smalldata/parser/orc/synthetic_perfect_separation"))
 
   # make sure orc multi-file and single big file create same H2O frame
-  assert pyunit_utils.compare_frames(multi_file_orc , multi_file_csv, numElements2Compare, tol_time, tol_numeric, True), \
-    "H2O frame parsed from multiple orc and single orc files are different!"
+  try:
+    assert pyunit_utils.compare_frames(multi_file_orc , multi_file_csv1, numElements2Compare, tol_time, tol_numeric,
+                                       True), "H2O frame parsed from multiple orc and single orc files are different!"
+  except:
+    assert pyunit_utils.compare_frames(multi_file_orc , multi_file_csv2, numElements2Compare, tol_time, tol_numeric,
+                                       True), "H2O frame parsed from multiple orc and single orc files are different!"
 
 
 if __name__ == "__main__":
