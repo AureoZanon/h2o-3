@@ -13,7 +13,7 @@ public abstract class FileVec extends ByteVec {
   public static String getPathForKey(Key k) {
     final int off = k._kb[0]==Key.CHK   || k._kb[0]==Key.VEC ? Vec.KEY_PREFIX_LEN : 0;
     String p = new String(k._kb,off,k._kb.length-off);
-    if(p.startsWith("nfs:/"))
+    if(p.startsWith("nfs:"))
       p = p.substring("nfs:/".length());
     return p;
   }
