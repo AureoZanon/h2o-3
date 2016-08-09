@@ -21,7 +21,7 @@ test.continuous.or.categorical <- function() {
   	
   	for(i in 1:ncol(csv)){
        print(i)
-       expect_equal(summary(csv[,i]),summary(original[,i]))
+       expect_equal(summary(csv[,i]),summary(orc[,i]))
     }
 }
 
