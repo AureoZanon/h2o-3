@@ -2350,7 +2350,7 @@ plot.H2OModel <- function(x, timestep = "AUTO", metric = "AUTO", ...) {
 #'
 #' @param model A trained model (accepts a trained random forest, GBM,
 #' or deep learning model, will use \code{\link{h2o.std_coef_plot}}
-#' for a trained GLM}
+#' for a trained GLM
 #' @param num_of_features The number of features to be shown in the plot
 #' @seealso \code{\link{h2o.std_coef_plot}} for GLM.
 #' @examples
