@@ -135,34 +135,34 @@ public class OrcParser extends Parser {
       case "int":
       case "smallint":
       case "tinyint":
-        writeLongcolumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+        writeLongcolumn(oneColumn, cIdx, rowNumber, dout);
         break;
       case "float":
       case "real":    // type used by h2o
       case "double":
-        writeDoublecolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+        writeDoublecolumn(oneColumn, columnType, cIdx, rowNumber, dout);
         break;
       case "numeric":
         if (oneColumn.getClass().getName().contains("Long"))
-          writeLongcolumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          writeLongcolumn(oneColumn, cIdx, rowNumber, dout);
         else
-          writeDoublecolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+          writeDoublecolumn(oneColumn, columnType, cIdx, rowNumber, dout);
         break;
       case "string":
       case "varchar":
       case "char":
 //        case "binary":  //FIXME: only reading it as string right now.
-        writeStringcolumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+        writeStringcolumn(oneColumn, cIdx, rowNumber, dout);
         break;
       case "enum":
-        writeEnumColumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+        writeEnumColumn(oneColumn, cIdx, rowNumber, dout);
         break;
       case "date":
       case "timestamp":
-        writeTimecolumn(oneColumn, columnType, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+        writeTimecolumn(oneColumn, columnType, cIdx, rowNumber, dout);
         break;
       case "decimal":
-        writeDecimalcolumn(oneColumn, oneColumn.noNulls, oneColumn.isNull, cIdx, rowNumber, dout);
+        writeDecimalcolumn(oneColumn, cIdx, rowNumber, dout);
         break;
       default:
         throw new IllegalArgumentException("Unsupported Orc schema type: " + columnType);
@@ -173,27 +173,25 @@ public class OrcParser extends Parser {
    * This method is written to write a column of enums to the frame.  However, enums can be a number
    * or a string.  Hence, we break this one out and do it on its own
    *
-   * @param oneEnumColumn
-   * @param noNull
-   * @param isNull
+   * @param col
    * @param cIdx
    * @param rowNumber
    * @param dout
    */
-  private void writeEnumColumn(ColumnVector oneEnumColumn, boolean noNull, boolean[] isNull, int cIdx, int rowNumber,
+  private void writeEnumColumn(ColumnVector col, int cIdx, int rowNumber,
                                ParseWriter dout) {
-    String orcColumnType = oneEnumColumn.getClass().getName().toLowerCase();
+    String orcColumnType = col.getClass().getName().toLowerCase();
     if (orcColumnType.contains("long")) {  // a numeric categorical
-      long[] oneColumn = ((LongColumnVector) oneEnumColumn).vector;
+      long[] oneColumn = ((LongColumnVector) col).vector;
 
-      if (noNull) {
+      if (col.noNulls) {
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
           check_Min_Value(oneColumn[rowIndex], cIdx, rowNumber, dout);
           dout.addStrCol(cIdx, bs.set(Long.toString(oneColumn[rowIndex])));
         }
       } else {
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-          if (isNull[rowIndex])
+          if (col.isNull[rowIndex])
             dout.addInvalidCol(cIdx);
           else {
             check_Min_Value(oneColumn[rowIndex], cIdx, rowNumber, dout);
@@ -202,15 +200,15 @@ public class OrcParser extends Parser {
         }
       }
     } else if (orcColumnType.contains("bytes")) { // for char, varchar, string
-      writeStringcolumn(oneEnumColumn,noNull,isNull,cIdx,rowNumber,dout);
+      writeStringcolumn(col,cIdx,rowNumber,dout);
     } else if (orcColumnType.contains("double")) {  // for double and floats
-      double[] oneColumn = ((DoubleColumnVector) oneEnumColumn).vector;
-      if (noNull) {
+      double[] oneColumn = ((DoubleColumnVector) col).vector;
+      if (col.noNulls) {
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++)
           dout.addStrCol(cIdx, bs.set(String.valueOf(oneColumn[rowIndex])));
       } else {
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-          if (isNull[rowIndex])
+          if (col.isNull[rowIndex])
             dout.addInvalidCol(cIdx);
           else
             dout.addStrCol(cIdx, bs.set(String.valueOf(oneColumn[rowIndex])));
@@ -249,18 +247,15 @@ public class OrcParser extends Parser {
    * This method writes one column of H2O frame for column type timestamp.  This is just a long that
    * records the number of seconds since Jan 1, 2015.
    *
-   * @param oneTSColumn
-   * @param noNulls
-   * @param isNull
+   * @param col
    * @param cIdx
    * @param rowNumber
    * @param dout
    */
-  private void writeTimecolumn(ColumnVector oneTSColumn, String columnType, boolean noNulls, boolean[] isNull, int cIdx,
+  private void writeTimecolumn(ColumnVector col, String columnType,int cIdx,
                                int rowNumber, ParseWriter dout) {
-    long[] oneColumn = ((LongColumnVector) oneTSColumn).vector;
-
-    if (noNulls) {
+    long[] oneColumn = ((LongColumnVector) col).vector;
+    if (col.noNulls) {
       switch (columnType) {
         case "timestamp":
           for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
@@ -272,18 +267,17 @@ public class OrcParser extends Parser {
             dout.addNumCol(cIdx, correctTimeStamp(oneColumn[rowIndex]));
           }
       }
-
     } else {
       if (columnType.contains("timestamp")) {
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-          if (isNull[rowIndex])
+          if (col.isNull[rowIndex])
             dout.addInvalidCol(cIdx);
           else
             dout.addNumCol(cIdx, oneColumn[rowIndex] / 1000000);
         }
       } else {  // date
         for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-          if (isNull[rowIndex])
+          if (col.isNull[rowIndex])
             dout.addInvalidCol(cIdx);
           else {
             dout.addNumCol(cIdx, correctTimeStamp(oneColumn[rowIndex]));
@@ -297,19 +291,17 @@ public class OrcParser extends Parser {
    * This method writes a column to H2O frame for column type Decimal.  It is just written as some
    * integer without using the scale field.  Need to make sure this is what the customer wants.
    *
-   * @param oneDecimalColumn
-   * @param noNulls
-   * @param isNull
+   * @param col
    * @param cIdx
    * @param rowNumber
    * @param dout
    */
-  private void writeDecimalcolumn(ColumnVector oneDecimalColumn, boolean noNulls, boolean[] isNull, int cIdx,
+  private void writeDecimalcolumn(ColumnVector col, int cIdx,
                                   int rowNumber, ParseWriter dout) {
-    HiveDecimalWritable[] oneColumn = ((DecimalColumnVector) oneDecimalColumn).vector;
+    HiveDecimalWritable[] oneColumn = ((DecimalColumnVector) col).vector;
     for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
       HiveDecimal hd = oneColumn[rowIndex].getHiveDecimal();
-      if(noNulls || !isNull[rowIndex])
+      if(col.noNulls || !col.isNull[rowIndex])
         dout.addNumCol(cIdx, hd.unscaledValue().longValue(),-hd.scale());
     }
   }
@@ -319,28 +311,22 @@ public class OrcParser extends Parser {
    * binary at some point.
    *
    * @param oneStringColumn
-   * @param noNulls
-   * @param isNull
    * @param cIdx
    * @param rowNumber
    * @param dout
    */
-  private void writeStringcolumn(ColumnVector oneStringColumn, boolean noNulls,
-                                 boolean[] isNull, int cIdx, int rowNumber, ParseWriter dout) {
+  private void writeStringcolumn(ColumnVector oneStringColumn, int cIdx, int rowNumber, ParseWriter dout) {
     BufferedString bs = new BufferedString();
     BytesColumnVector bv = (BytesColumnVector) oneStringColumn;
-    if(bv.isRepeating) {
-      if(noNulls) {
-        dout.addStrCol(cIdx, bs.set(bv.vector[0], bv.start[0], bv.length[0]));
-        for (int rowIndex = 1; rowIndex < rowNumber; ++rowIndex)
-          dout.addStrCol(cIdx, bs);
-      } else for (int rowIndex = 0; rowIndex < rowNumber; ++rowIndex)
-          dout.addInvalidCol(cIdx);
+    if(bv.isRepeating && bv.noNulls) {
+      dout.addStrCol(cIdx, bs.set(bv.vector[0], bv.start[0], bv.length[0]));
+      for (int rowIndex = 1; rowIndex < rowNumber; ++rowIndex)
+        dout.addStrCol(cIdx, bs);
     } else {
       for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-        if (!noNulls && isNull[rowIndex])
+        if (!bv.noNulls && bv.isNull[rowIndex])
           dout.addInvalidCol(cIdx);
-        else if (bv.isRepeating && rowIndex != 0)   // string value same as last one, no need to set buffer bs
+        else if (bv.isRepeating && bv.length[rowIndex] == 0)   // string value same as last one, no need to set buffer bs
           dout.addStrCol(cIdx, bs);
         else
           dout.addStrCol(cIdx, bs.set(bv.vector[rowIndex], bv.start[rowIndex], bv.length[rowIndex]));
@@ -352,19 +338,15 @@ public class OrcParser extends Parser {
   /**
    * This method writes a column of H2O frame for Orc File column type of float or double.
    *
-   * @param oneDoubleColumn
+   * @param col
    * @param columnType
-   * @param noNulls
-   * @param isNull
    * @param cIdx
    * @param rowNumber
    * @param dout
    */
-  private void writeDoublecolumn(ColumnVector oneDoubleColumn, String columnType, boolean noNulls,
-                                 boolean[] isNull, int cIdx, int rowNumber, ParseWriter dout) {
-    double[] oneColumn = ((DoubleColumnVector) oneDoubleColumn).vector;
-
-    if (noNulls) {
+  private void writeDoublecolumn(ColumnVector col, String columnType,  int cIdx, int rowNumber, ParseWriter dout) {
+    double[] oneColumn = ((DoubleColumnVector) col).vector;
+    if (col.noNulls) {
       switch (columnType) {
         case "float":
           for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++)
@@ -376,7 +358,7 @@ public class OrcParser extends Parser {
       }
     } else {
       for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-        if (isNull[rowIndex])
+        if (col.isNull[rowIndex])
           dout.addInvalidCol(cIdx);
         else {
           switch (columnType) {
@@ -395,23 +377,21 @@ public class OrcParser extends Parser {
    * This method writes a column of H2O frame for Orc File column type of boolean, bigint, int, smallint,
    * tinyint and date.
    *
-   * @param oneLongColumn
-   * @param noNull
-   * @param isNull
+   * @param col
    * @param cIdx
    * @param rowNumber
    * @param dout
    */
-  private void writeLongcolumn(ColumnVector oneLongColumn, boolean noNull, boolean[] isNull, int cIdx, int rowNumber, ParseWriter dout) {
-    long[] oneColumn = ((LongColumnVector) oneLongColumn).vector;
-    if (noNull) {
+  private void writeLongcolumn(ColumnVector col, int cIdx, int rowNumber, ParseWriter dout) {
+    long[] oneColumn = ((LongColumnVector) col).vector;
+    if (col.noNulls) {
       for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
         check_Min_Value(oneColumn[rowIndex], cIdx, rowNumber, dout);
         dout.addNumCol(cIdx, oneColumn[rowIndex], 0);
       }
     } else {
       for (int rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
-        if (isNull[rowIndex])
+        if (col.isNull[rowIndex])
           dout.addInvalidCol(cIdx);
         else {
           check_Min_Value(oneColumn[rowIndex], cIdx, rowNumber, dout);

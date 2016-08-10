@@ -370,11 +370,10 @@ public class ParseTestOrc extends TestUtil {
             if (isNull[rowIndex])
                 assertEquals("Na is found: ", true, h2oFrame.isNA(frameRowIndex));
             else {
-                if (stringLength[rowIndex] > 0)
+                if (!oneStringColumn.isRepeating || rowIndex == 0)
                     tempOrc.set(oneColumn[rowIndex], stringStart[rowIndex], stringLength[rowIndex]);
-
                 h2oFrame.atStr(h2o, frameRowIndex);
-                assertEquals("String/char elements should equal: ", true, tempOrc.equals(h2o));
+                assertEquals("isRepeating = " + oneStringColumn.isRepeating + " String/char elements should equal: ", true, tempOrc.equals(h2o));
             }
 
             frameRowIndex++;
