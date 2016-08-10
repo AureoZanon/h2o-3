@@ -15,6 +15,7 @@ import water.parser.*;
 import water.persist.PersistHdfs;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import static water.fvec.FileVec.getPathForKey;
@@ -102,14 +103,10 @@ public class OrcParserProvider extends ParserProvider {
       if (!(columnTypes == null) && (columnTypes.length == stp.getColumnTypes().length)) { // copy enum type only
         byte[] old_columnTypes = stp.getColumnTypes();
         String[] old_columnTypeNames = stp.getColumnTypesString();
-
         for (int index = 0; index < columnTypes.length; index++) {
-          if (columnTypes[index] == Vec.T_CAT) { // only copy the enum types
+          if (columnTypes[index] == Vec.T_CAT)  // only copy the enum types
             old_columnTypes[index] = columnTypes[index];
-            old_columnTypeNames[index] = "Enum";
-          }
         }
-
         stp.setColumnTypes(old_columnTypes);
         stp.setColumnTypeStrings(old_columnTypeNames);
       }
