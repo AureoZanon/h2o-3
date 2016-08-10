@@ -1,0 +1,22 @@
+setwd(normalizePath(dirname(R.utils::commandArgs(asValues=TRUE)$"f")))
+source("../../scripts/h2o-r-test-setup.R")
+
+
+#analogous to pyunit_empty_strings.py
+test.std_coef_plot <- function() {
+    # Importing prostate.csv data
+    prostate.hex <- h2o.uploadFile(locate("smalldata/logreg/prostate.csv"), destination_frame="prostate.hex")
+    # Converting CAPSULE and RACE columns to factors
+    prostate.hex$CAPSULE <- as.factor(prostate.hex$CAPSULE)
+    prostate.hex$RACE <- as.factor(prostate.hex$RACE)
+
+    # Train H2O GLM Model:
+    prostate.glm <- h2o.gbm(x = 3:9, y = "CAPSULE", training_frame = prostate.hex, distribution = "bernoulli")
+
+    # plot variable importance for all and two features
+    h2o.std_coef_plot(prostate.glm)
+    h2o.std_coef_plot(prostate.glm, 2)
+
+}
+
+doTest("Plot Variable Importance", test.std_coef_plot)
