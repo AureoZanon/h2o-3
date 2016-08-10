@@ -2431,9 +2431,11 @@ h2o.varimp_plot <- function(model, num_of_features = NULL){
 #' h2o.init()
 #'
 #' prosPath <- system.file("extdata", "prostate.csv", package="h2o")
-#' hex <- h2o.importFile(prosPath)
-#' hex[,2] <- as.factor(hex[,2])
+#' prostate.hex <- h2o.importFile(prosPath)
+#' prostate.hex[,2] <- as.factor(prostate.hex[,2])
 #' prostate.glm <- h2o.glm(y = "CAPSULE", x = c("AGE","RACE","PSA","DCAPS"),
+#                          training_frame = prostate.hex, family = "binomial",
+#                          nfolds = 0, alpha = 0.5, lambda_search = FALSE)
 #' h2o.std_coef_plot(prostate.glm)
 #' }
 #' @export

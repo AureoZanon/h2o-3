@@ -11,7 +11,8 @@ test.std_coef_plot <- function() {
     prostate.hex$RACE <- as.factor(prostate.hex$RACE)
 
     # Train H2O GLM Model:
-    prostate.glm <- h2o.gbm(x = 3:9, y = "CAPSULE", training_frame = prostate.hex, distribution = "bernoulli")
+    prostate.glm <- h2o.glm(y = "CAPSULE", x = c("AGE","RACE","PSA","DCAPS"), training_frame = prostate.hex,
+                            family = "binomial", nfolds = 0, alpha = 0.5, lambda_search = FALSE)
 
     # plot variable importance for all and two features
     h2o.std_coef_plot(prostate.glm)
