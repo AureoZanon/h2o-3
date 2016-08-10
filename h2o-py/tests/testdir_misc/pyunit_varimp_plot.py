@@ -5,6 +5,7 @@ from tests import pyunit_utils
 from h2o.estimators.gbm import H2OGradientBoostingEstimator
 from h2o.estimators.random_forest import H2ORandomForestEstimator
 from h2o.estimators.deeplearning import H2ODeepLearningEstimator
+from h2o.estimators.glm import H2OGeneralizedLinearEstimator
 
 def varimp_plot_test():
   kwargs = {}
@@ -24,26 +25,35 @@ def varimp_plot_test():
   cars[response_col] = cars[response_col].asfactor()
 
   # Build and train a DRF model
+  # to do: comment this out
   cars_rf = H2ORandomForestEstimator()
   cars_rf.train(x=predictors, y=response_col, training_frame=cars_train, validation_frame=cars_valid)
 
-  #Plot DRF Variable Importances
+  #Plot DRF Variable Importances, check that num_of_features accepts input
   cars_rf.varimp_plot()
+  cars_rf.varimp_plot(num_of_features=2)
 
   # Build and train a GBM model
   cars_gbm = H2OGradientBoostingEstimator()
   cars_gbm.train(x=predictors, y=response_col, training_frame=cars_train, validation_frame=cars_valid)
 
-  #Plot GBM Variable Importances
+  # Plot GBM Variable Importances
   cars_gbm.varimp_plot()
+  cars_gbm.varimp_plot(num_of_features=2)
 
   # Build and train a Deep Learning model
-  cars_dl = H2ODeepLearningEstimator(variable_importances = True)
+  cars_dl = H2ODeepLearningEstimator(variable_importances=True)
   cars_dl.train(x=predictors, y=response_col, training_frame=cars_train, validation_frame=cars_valid)
 
-  #Plot Deep Learning Variable Importances
+  # Plot Deep Learning Variable Importances
   cars_dl.varimp_plot()
+  cars_dl.varimp_plot(num_of_features=2)
 
+  # check that varimp_plot() uses std_coef_plot() for a glm
+  cars_glm = H2OGeneralizedLinearEstimator()
+  cars_glm.train(x=predictors, y=response_col, training_frame=cars_train, validation_frame=cars_valid)
+  cars_glm.varimp_plot()
+  cars_glm.varimp_plot(num_of_features=2)
 
 
 if __name__ == "__main__":
